@@ -251,7 +251,7 @@ def test_wyckoff():
     import pandas as pd
     import os
 
-    df = pd.read_csv(os.path.join(os.path.dirname(__file__), '../data/wyckoff_symbols.csv'))
+    df = pd.read_csv(os.path.join(datadir, 'wyckoff_symbols.csv'))
     df['Wyckoff Positions'] = df['Wyckoff Positions'].apply(eval)  # convert string to list
 
     wyckoff_symbols = df['Wyckoff Positions'].tolist()

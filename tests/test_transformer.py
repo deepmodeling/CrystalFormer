@@ -14,7 +14,7 @@ def test_autoregressive():
     dim = 3
     dropout_rate = 0.0
 
-    csv_file = '../data/mini.csv'
+    csv_file = os.path.join(datadir, 'mini.csv')
     G, L, X, A, W = GLXYZAW_from_file(csv_file, atom_types, wyck_types, n_max, dim)
         
     @jax.vmap
