@@ -163,6 +163,6 @@ More details about the post-processing can be seen in the [scripts](./scripts/RE
 ```bibtex
 @article{crystalformer2024,
   title = {Crystalformer},
-  author = {Zhendong Cao and Lei Wang},
+  author = {Zhendong Cao, Xiaoshan Luo, Jian Lv and Lei Wang},
 }
 ```
