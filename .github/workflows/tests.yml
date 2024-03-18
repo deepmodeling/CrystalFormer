@@ -27,4 +27,4 @@ jobs:
           pip install --upgrade "jax[cpu]"
       - name: Test with pytest
         run: |
-          pytest
+          pytest --rootdir /home/runner/work/crystal_gpt/crystal_gpt
