@@ -40,7 +40,7 @@ The model is an autoregressive transformer for the space group conditioned cryst
 
 - `X`: factional coordinates
 
-- `L`: lattice vector [a,b,c, alpha, beta, gamma]
+- `L`: lattice vector [a,b,c, $\alpha$, $\beta$, $\gamma$]
 
 - `P(W_i| ...)` and `P(A_i| ...)`  are categorical distributuions. 
 
