@@ -1,6 +1,6 @@
 dm-haiku==0.0.11
 optax==0.1.8
-pymatgen==2023.12.18
+pymatgen==2024.3.1
 pyxtal==0.6.3
 SMACT==2.5.5
 matbench-genmetrics==0.6.1
