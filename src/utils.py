@@ -64,7 +64,7 @@ def process_one(cif, atom_types, wyck_types, n_max, tol=0.01):
       A: atom types
       W: wyckoff letters
     """
-    crystal = Structure.from_str(cif, fmt='cif', primitive=True)
+    crystal = Structure.from_str(cif, fmt='cif')
     spga = SpacegroupAnalyzer(crystal, symprec=tol)
     crystal = spga.get_refined_structure()
     c = pyxtal()
