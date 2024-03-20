@@ -118,7 +118,7 @@ def main(args):
         metrics_out_file = 'eval_metrics.json'
     else:
         metrics_out_file = f'eval_metrics_{args.label}.json'
-    metrics_out_file = os.path.join(args.output_path, metrics_out_file)
+    metrics_out_file = os.path.join(args.root_path, metrics_out_file)
     print("output path:", metrics_out_file)
 
     # only overwrite metrics computed in the new run.
@@ -142,7 +142,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--root_path',  default='/data/zdcao/crystal_gpt/dataset/mp_20/symm_data/')
     parser.add_argument('--filename', default='out_structure.csv')
-    parser.add_argument('--output_path', default='./')
     parser.add_argument('--label', default='')
     parser.add_argument('--num_io_process', type=int, default=40, help='number of process used in multiprocessing io')
     args = parser.parse_args()

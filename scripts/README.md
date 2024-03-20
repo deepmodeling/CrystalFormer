@@ -26,11 +26,10 @@ python awl2struct.py --output_path YOUR_PATH --label SPACE_GROUP --num_io_proces
 `compute_metrics.py` is a script to calculate the structure and composition validity of the generated structures.
 
 ```bash
-python ../scripts/compute_metrics.py --root_path /data/zdcao/crystal_gpt/dataset/mp_20/symm_data/ --filename out_structure.csv --output_path ./ --num_io_process 40
+python ../scripts/compute_metrics.py --root_path YOUR_PATH --filename YOUR_FILE --output_path ./ --num_io_process 40
 ```
 - `root_path`: the path to the dataset
 - `filename`: the filename of the generated structures
-- `output_path`: the path to save the metrics results
 - `num_io_process`: the number of processes
 
 ### Novelty and Uniqueness
