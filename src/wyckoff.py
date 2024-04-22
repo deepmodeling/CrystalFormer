@@ -76,7 +76,7 @@ for g in range(230):
     mult_table[g, 1:len(mult)+1] = mult
     wmax_table[g] = len(mult)
 
-    print (g+1, [len(w) for w in wyckoffs])
+    # print (g+1, [len(w) for w in wyckoffs])
     for w, wyckoff in enumerate(wyckoffs):
         wyckoff = np.array(wyckoff)
         repeats = symops.shape[2] // wyckoff.shape[0]
