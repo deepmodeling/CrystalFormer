@@ -115,7 +115,7 @@ def symmetrize_atoms(g, w, x):
     #https://github.com/qzhu2017/PyXtal/blob/82e7d0eac1965c2713179eeda26a60cace06afc8/pyxtal/wyckoff_site.py#L115
     def dist_to_op0x(coord):
         diff = jnp.dot(symops[g-1, w, 0], jnp.array([*coord, 1])) - coord
-        diff -= jnp.floor(diff)
+        diff -= jnp.rint(diff)
         return jnp.sum(diff**2) 
     loc = jnp.argmin(jax.vmap(dist_to_op0x)(coords))
     x = coords[loc].reshape(3,)

@@ -59,8 +59,8 @@ def sample_x(key, h_x, Kx, top_p, temperature, batchsize):
     x = (x+ jnp.pi)/(2.0*jnp.pi) # wrap into [0, 1]
     return key, x 
 
-@partial(jax.jit, static_argnums=(1, 3, 4, 5, 6, 7, 8, 9, 11, 13))
-def sample_crystal(key, transformer, params, n_max, batchsize, atom_types, wyck_types, Kx, Kl, g, atom_mask, top_p, temperature, use_foriloop):
+@partial(jax.jit, static_argnums=(1, 3, 4, 5, 6, 7, 8, 9, 12, 14, 15))
+def sample_crystal(key, transformer, params, n_max, batchsize, atom_types, wyck_types, Kx, Kl, g, w_mask, atom_mask, top_p, temperature, T1, use_foriloop):
 
     if use_foriloop: 
        
@@ -72,16 +72,22 @@ def sample_crystal(key, transformer, params, n_max, batchsize, atom_types, wyck_
             w_logit = w_logit[:, :wyck_types]
         
             key, subkey = jax.random.split(key)
+            if w_mask is not None:
+                w_logit = w_logit.at[:, w_mask[i]].set(w_logit[:, w_mask[i]] + 1e10)
             w = sample_top_p(subkey, w_logit, top_p, temperature)
             W = W.at[:, i].set(w)
-
+ 
             # (2) A
             h_al = inference(transformer, params, g, W, A, X, Y, Z)[:, 5*i+1] # (batchsize, output_size)
             a_logit = h_al[:, :atom_types]
         
             key, subkey = jax.random.split(key)
             a_logit = a_logit + jnp.where(atom_mask, 1e10, 0.0) # enhance the probability of masked atoms (do not need to normalize since we only use it for sampling, not computing logp)
-            a = sample_top_p(subkey, a_logit, top_p, temperature)
+            _temp = jax.lax.cond(i==0,
+                                 true_fun=lambda x: jnp.array(T1, dtype=float),
+                                 false_fun=lambda x: temperature,
+                                 operand=None)
+            a = sample_top_p(subkey, a_logit, top_p, _temp)  # use T1 for the first atom type
             A = A.at[:, i].set(a)
         
             lattice_params = h_al[:, atom_types:atom_types+Kl+2*6*Kl]
@@ -154,6 +160,8 @@ def sample_crystal(key, transformer, params, n_max, batchsize, atom_types, wyck_
             w_logit = w_logit[:, :wyck_types]
         
             key, subkey = jax.random.split(key)
+            if w_mask is not None:
+                w_logit = w_logit.at[:, w_mask[i]].set(w_logit[:, w_mask[i]] + 1e10)
             w = sample_top_p(subkey, w_logit, top_p, temperature)
         
             W = jnp.concatenate([W, w[:, None]], axis=1)
@@ -170,7 +178,11 @@ def sample_crystal(key, transformer, params, n_max, batchsize, atom_types, wyck_
         
             key, subkey = jax.random.split(key)
             a_logit = a_logit + jnp.where(atom_mask, 1e10, 0.0) # enhance the probability of masked atoms (do not need to normalize since we only use it for sampling, not computing logp)
-            a = sample_top_p(subkey, a_logit, top_p, temperature)
+            _temp = jax.lax.cond(i==0,
+                                 true_fun=lambda x: jnp.array(T1, dtype=float),
+                                 false_fun=lambda x: temperature,
+                                 operand=None)
+            a = sample_top_p(subkey, a_logit, top_p, _temp)  # use T1 for the first atom type
             A = jnp.concatenate([A, a[:, None]], axis=1)
         
             lattice_params = h_al[:, atom_types:atom_types+Kl+2*6*Kl]

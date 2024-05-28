@@ -7,7 +7,7 @@ import os
 import multiprocessing
 import math
 
-from utils import GLXYZAW_from_file, GLXA_to_csv
+from utils import GLXYZAW_from_file, GLXA_to_csv, letter_to_number
 from elements import element_dict, element_list
 from transformer import make_transformer  
 from train import train
@@ -59,10 +59,14 @@ group.add_argument('--atom_types', type=int, default=119, help='Atom types inclu
 group.add_argument('--wyck_types', type=int, default=28, help='Number of possible multiplicites including 0')
 
 group = parser.add_argument_group('sampling parameters')
+group.add_argument('--seed', type=int, default=None, help='random seed to sample')
 group.add_argument('--spacegroup', type=int, help='The space group id to be sampled (1-230)')
+group.add_argument('--wyckoff', type=str, default=None, nargs='+', help='The Wyckoff positions to be sampled, e.g. a, b')
 group.add_argument('--elements', type=str, default=None, nargs='+', help='name of the chemical elemenets, e.g. Bi, Ti, O')
+group.add_argument('--remove_radioactive', action='store_true', help='remove radioactive elements and noble gas')
 group.add_argument('--top_p', type=float, default=1.0, help='1.0 means un-modified logits, smaller value of p give give less diverse samples')
 group.add_argument('--temperature', type=float, default=1.0, help='temperature used for sampling')
+group.add_argument('--T1', type=float, default=None, help='temperature used for sampling the first atom type')
 group.add_argument('--num_io_process', type=int, default=40, help='number of process used in multiprocessing io')
 group.add_argument('--num_samples', type=int, default=1000, help='number of test samples')
 group.add_argument('--use_foriloop', action='store_true', help='use lax.fori_loop in sampling')
@@ -94,7 +98,28 @@ else:
         print ('sampling structure formed by these elements:', args.elements)
         print (atom_mask)
     else:
-        atom_mask = jnp.zeros((args.atom_types), dtype=int) # we will do nothing to a_logit in sampling
+        if args.remove_radioactive:
+            from elements import radioactive_elements_dict, noble_gas_dict
+            # remove radioactive elements and noble gas
+            atom_mask = [1] + [1 if i not in radioactive_elements_dict.values() and i not in noble_gas_dict.values() else 0 for i in range(1, args.atom_types)]
+            atom_mask = jnp.array(atom_mask)
+            print('sampling structure formed by non-radioactive elements and non-noble gas')
+            print(atom_mask)
+            
+        else:
+            atom_mask = jnp.zeros((args.atom_types), dtype=int) # we will do nothing to a_logit in sampling
+    print(f'there is total {jnp.sum(atom_mask)-1} elements')
+
+    if args.wyckoff is not None:
+        idx = [letter_to_number(w) for w in args.wyckoff]
+        # padding 0 until the length is args.n_max
+        w_mask = idx + [0]*(args.n_max -len(idx))
+        # w_mask = [1 if w in idx else 0 for w in range(1, args.wyck_types+1)]
+        w_mask = jnp.array(w_mask, dtype=int)
+        print ('sampling structure formed by these Wyckoff positions:', args.wyckoff)
+        print (w_mask)
+    else:
+        w_mask = None
 
 ################### Model #############################
 params, transformer = make_transformer(key, args.Nf, args.Kx, args.Kl, args.n_max, 
@@ -188,6 +213,14 @@ else:
     jax.config.update("jax_enable_x64", True) # to get off compilation warning, and to prevent sample nan lattice 
     #FYI, the error was [Compiling module extracted] Very slow compile? If you want to file a bug, run with envvar XLA_FLAGS=--xla_dump_to=/tmp/foo and attach the results.
 
+    if args.seed is not None:
+        key = jax.random.PRNGKey(args.seed) # reset key for sampling if seed is provided
+    
+    if args.T1 is not None:
+        T1 = args.T1
+    else:
+        T1 = args.temperature
+
     num_batches = math.ceil(args.num_samples / args.batchsize)
     name, extension = args.output_filename.rsplit('.', 1)
     filename = os.path.join(output_path, 
@@ -197,7 +230,7 @@ else:
         end_idx = min(start_idx + args.batchsize, args.num_samples)
         n_sample = end_idx - start_idx
         key, subkey = jax.random.split(key)
-        XYZ, A, W, M, L = sample_crystal(subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, args.spacegroup, atom_mask, args.top_p, args.temperature, args.use_foriloop)
+        XYZ, A, W, M, L = sample_crystal(subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, args.spacegroup, w_mask, atom_mask, args.top_p, args.temperature, T1, args.use_foriloop)
         print ("XYZ:\n", XYZ)  # fractional coordinate 
         print ("A:\n", A)  # element type
         print ("W:\n", W)  # Wyckoff positions

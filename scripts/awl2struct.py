@@ -41,7 +41,7 @@ def symmetrize_atoms(g, w, x):
     #https://github.com/qzhu2017/PyXtal/blob/82e7d0eac1965c2713179eeda26a60cace06afc8/pyxtal/wyckoff_site.py#L115
     def dist_to_op0x(coord):
         diff = np.dot(symops[g-1, w, 0], np.array([*coord, 1])) - coord
-        diff -= np.floor(diff)
+        diff -= np.rint(diff)
         return np.sum(diff**2) 
    #  loc = np.argmin(jax.vmap(dist_to_op0x)(coords))
     loc = np.argmin([dist_to_op0x(coord) for coord in coords])
