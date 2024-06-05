@@ -11,10 +11,11 @@ from utils import GLXYZAW_from_file, GLXA_to_csv, letter_to_number
 from elements import element_dict, element_list
 from transformer import make_transformer  
 from train import train
-from sample import sample_crystal
+from sample import sample_crystal, make_update_lattice
 from loss import make_loss_fn
 import checkpoint
 from wyckoff import mult_table
+from mcmc import make_mcmc_step
 
 import argparse
 parser = argparse.ArgumentParser(description='')
@@ -69,8 +70,12 @@ group.add_argument('--temperature', type=float, default=1.0, help='temperature u
 group.add_argument('--T1', type=float, default=None, help='temperature used for sampling the first atom type')
 group.add_argument('--num_io_process', type=int, default=40, help='number of process used in multiprocessing io')
 group.add_argument('--num_samples', type=int, default=1000, help='number of test samples')
-group.add_argument('--use_foriloop', action='store_true', help='use lax.fori_loop in sampling')
 group.add_argument('--output_filename', type=str, default='output.csv', help='outfile to save sampled structures')
+
+group = parser.add_argument_group('MCMC parameters')
+group.add_argument('--mcmc', action='store_true', help='use MCMC to sample')
+group.add_argument('--nsweeps', type=int, default=10, help='number of sweeps')
+group.add_argument('--mc_width', type=float, default=0.1, help='width of MCMC step')
 
 args = parser.parse_args()
 
@@ -91,24 +96,59 @@ else:
     assert (args.spacegroup is not None) # for inference we need to specify space group
     test_data = GLXYZAW_from_file(args.test_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
     
+    # jnp.set_printoptions(threshold=jnp.inf)  # print full array 
+    constraints = jnp.arange(0, args.n_max, 1)
+
     if args.elements is not None:
-        idx = [element_dict[e] for e in args.elements]
-        atom_mask = [1] + [1 if a in idx else 0 for a in range(1, args.atom_types)]
-        atom_mask = jnp.array(atom_mask)
-        print ('sampling structure formed by these elements:', args.elements)
-        print (atom_mask)
+        # judge that if the input elements is a json file
+        if args.elements[0].endswith('.json'): 
+            import json
+            with open(args.elements[0], 'r') as f:
+                _data = json.load(f)
+                atoms_list = _data["atom_mask"]
+                _constraints = _data["constraints"]
+            print(_constraints)
+
+            for old_val, new_val in _constraints:
+                constraints = jnp.where(constraints == new_val, constraints[old_val], constraints)  # update constraints
+            print("constraints", constraints)
+
+            assert len(atoms_list) == len(args.wyckoff)
+            print ('sampling structure formed by these elements:', atoms_list)
+            atom_mask = []
+            for elements in atoms_list:
+                idx = [element_dict[e] for e in elements]
+                atom_mask_ = [1] + [1 if a in idx else 0 for a in range(1, args.atom_types)]
+                atom_mask.append(atom_mask_)
+            
+            # padding 0 until the atom_mask shape is (args.n_max, args.atom_types)
+            atom_mask = jnp.array(atom_mask)
+            atom_mask = jnp.pad(atom_mask, ((0, args.n_max-atom_mask.shape[0]), (0, 0)), mode='constant')
+            print(atom_mask)
+        else:
+            idx = [element_dict[e] for e in args.elements]
+            atom_mask = [1] + [1 if a in idx else 0 for a in range(1, args.atom_types)]
+            atom_mask = jnp.array(atom_mask)
+            atom_mask = jnp.stack([atom_mask] * args.n_max, axis=0)
+            print ('sampling structure formed by these elements:', args.elements)
+            print (atom_mask)
+
     else:
         if args.remove_radioactive:
             from elements import radioactive_elements_dict, noble_gas_dict
             # remove radioactive elements and noble gas
             atom_mask = [1] + [1 if i not in radioactive_elements_dict.values() and i not in noble_gas_dict.values() else 0 for i in range(1, args.atom_types)]
             atom_mask = jnp.array(atom_mask)
+            atom_mask = jnp.stack([atom_mask] * args.n_max, axis=0)
             print('sampling structure formed by non-radioactive elements and non-noble gas')
             print(atom_mask)
             
         else:
             atom_mask = jnp.zeros((args.atom_types), dtype=int) # we will do nothing to a_logit in sampling
-    print(f'there is total {jnp.sum(atom_mask)-1} elements')
+            atom_mask = jnp.stack([atom_mask] * args.n_max, axis=0)
+            print(atom_mask)
+    # print(f'there is total {jnp.sum(atom_mask)-1} elements')
+    print(atom_mask.shape)      
 
     if args.wyckoff is not None:
         idx = [letter_to_number(w) for w in args.wyckoff]
@@ -221,6 +261,11 @@ else:
     else:
         T1 = args.temperature
 
+    mc_steps = args.nsweeps * args.n_max
+    print("mc_steps", mc_steps)
+    mcmc = make_mcmc_step(params, n_max=args.n_max, atom_types=args.atom_types, atom_mask=atom_mask, constraints=constraints)
+    update_lattice = make_update_lattice(transformer, params, args.atom_types, args.Kl, args.top_p, args.temperature)
+
     num_batches = math.ceil(args.num_samples / args.batchsize)
     name, extension = args.output_filename.rsplit('.', 1)
     filename = os.path.join(output_path, 
@@ -230,7 +275,19 @@ else:
         end_idx = min(start_idx + args.batchsize, args.num_samples)
         n_sample = end_idx - start_idx
         key, subkey = jax.random.split(key)
-        XYZ, A, W, M, L = sample_crystal(subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, args.spacegroup, w_mask, atom_mask, args.top_p, args.temperature, T1, args.use_foriloop)
+        XYZ, A, W, M, L = sample_crystal(subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, args.spacegroup, w_mask, atom_mask, args.top_p, args.temperature, T1, constraints)
+
+        G = args.spacegroup * jnp.ones((n_sample), dtype=int)
+        if args.mcmc:
+            x = (G, L, XYZ, A, W)
+            key, subkey = jax.random.split(key)
+            x, acc = mcmc(logp_fn, x_init=x, key=subkey, mc_steps=mc_steps, mc_width=args.mc_width)
+            print("acc", acc)
+
+            G, L, XYZ, A, W = x
+            key, subkey = jax.random.split(key)
+            L = update_lattice(subkey, G, XYZ, A, W)
+        
         print ("XYZ:\n", XYZ)  # fractional coordinate 
         print ("A:\n", A)  # element type
         print ("W:\n", W)  # Wyckoff positions
@@ -256,7 +313,7 @@ else:
         angle = angle * (jnp.pi / 180) # to rad
         L = jnp.concatenate([length, angle], axis=-1)
 
-        G = args.spacegroup * jnp.ones((n_sample), dtype=int)
+        # G = args.spacegroup * jnp.ones((n_sample), dtype=int)
         logp_w, logp_xyz, logp_a, logp_l = jax.jit(logp_fn, static_argnums=7)(params, key, G, L, XYZ, A, W, False)
 
         data['logp_w'] = np.array(logp_w).tolist()
