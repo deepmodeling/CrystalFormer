@@ -75,13 +75,9 @@ If you intend to use CUDA (GPU) to speed up the training, it is important to ins
 ```bash
 pip install --upgrade pip
 
-# CUDA 12 installation
+# NVIDIA CUDA 12 installation
 # Note: wheels only available on linux.
-pip install --upgrade "jax[cuda12_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
-
-# CUDA 11 installation
-# Note: wheels only available on linux.
-pip install --upgrade "jax[cuda11_pip]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+pip install --upgrade "jax[cuda12]"
 ```
 
 ### install required packages
@@ -110,7 +106,7 @@ python ./src/main.py --folder ./data/ --train_path YOUR_PATH/mp_20/train.csv --v
 ### sample
 
 ```bash
-python ./src/main.py --optimizer none --test_path YOUR_PATH/mp_20/test.csv --restore_path YOUR_MODEL_PATH --spacegroup 160 --num_samples 1000  --batchsize 1000 --temperature 1.0 --use_foriloop
+python ./src/main.py --optimizer none --test_path YOUR_PATH/mp_20/test.csv --restore_path YOUR_MODEL_PATH --spacegroup 160 --num_samples 1000  --batchsize 1000 --temperature 1.0
 ```
 
 - `optimizer`: the optimizer to use, `none` means no training, only sampling
@@ -119,7 +115,6 @@ python ./src/main.py --optimizer none --test_path YOUR_PATH/mp_20/test.csv --res
 - `num_samples`: the number of samples to generate
 - `batchsize`: the batch size for sampling
 - `temperature`: the temperature for sampling
-- `use_foriloop`: use `lax.fori_loop` to speed up the sampling
 
 You can also use the `element` to sample the specific element. For example, `--element La Ni O` will sample the structure with La, Ni, and O atoms. The sampling results will be saved in the `output_LABEL.csv` file, where the `LABEL` is the space group number `g` specified in the command `--spacegroup`.
 
