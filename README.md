@@ -116,7 +116,13 @@ python ./src/main.py --optimizer none --test_path YOUR_PATH/mp_20/test.csv --res
 - `batchsize`: the batch size for sampling
 - `temperature`: the temperature for sampling
 
-You can also use the `element` to sample the specific element. For example, `--element La Ni O` will sample the structure with La, Ni, and O atoms. The sampling results will be saved in the `output_LABEL.csv` file, where the `LABEL` is the space group number `g` specified in the command `--spacegroup`.
+You can also use the `elements` to sample the specific element. For example, `--elements La Ni O` will sample the structure with La, Ni, and O atoms. The sampling results will be saved in the `output_LABEL.csv` file, where the `LABEL` is the space group number `g` specified in the command `--spacegroup`.
+
+The input for the `elements` can be also the `json` file which specifies the atom mask in each Wyckoff site and the constraints. An example `atoms.json` file can be seen in the [data](./data/atoms.json) folder. There are two keys in the `atoms.json` file:
+
+- `atom_mask`: set the atom list for each Wyckoff position, the element can only be selected from the list in the corresponding Wyckoff position
+- `constraints`: set the constraints for the Wyckoff sites in the sampling, you can specify the pair of Wyckoff sites that should have the same elements
+
 
 ### evaluate
 
