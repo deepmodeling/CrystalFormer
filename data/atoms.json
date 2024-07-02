@@ -1,0 +1,11 @@
+{
+    "atom_mask":[
+                ["V", "Cr", "Mn", "Fe", "Co", "Ni"],
+                ["V", "Cr", "Mn", "Fe", "Co", "Ni"],
+                ["O", "S", "F", "Cl", "Br", "I"],
+                ["O", "S", "F", "Cl", "Br", "I"]
+    ],
+    "constraints":[
+        [2, 3]
+    ]
+}
