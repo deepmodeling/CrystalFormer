@@ -2,8 +2,8 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-from wyckoff import fc_mask_table
-from von_mises import sample_von_mises
+from crystalformer.src.wyckoff import fc_mask_table
+from crystalformer.src.von_mises import sample_von_mises
 
 
 get_fc_mask = lambda g, w: jnp.logical_and((w>0)[:, None], fc_mask_table[g-1, w])
@@ -74,6 +74,10 @@ def make_mcmc_step(params, n_max, atom_types, atom_mask=None, constraints=None):
                 x_new = (G, L, XYZ_new, A_new, W)
                 logp_new = jnp.where(accept, logp_proposal, logp)
                 num_accepts += jnp.sum(accept*jnp.where(A[:, i%n_max]==0, 0, 1))
+                jax.debug.print("logp {x} {y}", 
+                                x=logp_new.mean(),
+                                y=jnp.std(logp_new)/jnp.sqrt(logp_new.shape[0])
+                                )
                 return x_new, logp_new, key, num_accepts
 
             def false_func(i, state):
@@ -91,7 +95,10 @@ def make_mcmc_step(params, n_max, atom_types, atom_mask=None, constraints=None):
         key, subkey = jax.random.split(key)
         logp_w, logp_xyz, logp_a, _ = logp_fn(params, subkey, *x_init, False)
         logp_init = logp_w + logp_xyz + logp_a
-        # print("logp_init", logp_init)
+        jax.debug.print("logp {x} {y}", 
+                        x=logp_init.mean(),
+                        y=jnp.std(logp_init)/jnp.sqrt(logp_init.shape[0])
+                        )
         
         x, logp, key, num_accepts = jax.lax.fori_loop(0, mc_steps, step, (x_init, logp_init, key, 0.))
         # print("logp", logp)

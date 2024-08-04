@@ -2,9 +2,9 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-from von_mises import sample_von_mises
-from lattice import symmetrize_lattice
-from wyckoff import mult_table, symops
+from crystalformer.src.von_mises import sample_von_mises
+from crystalformer.src.lattice import symmetrize_lattice
+from crystalformer.src.wyckoff import mult_table, symops
 
 def project_xyz(g, w, x, idx):
     '''

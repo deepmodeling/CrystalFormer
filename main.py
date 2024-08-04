@@ -7,15 +7,15 @@ import os
 import multiprocessing
 import math
 
-from utils import GLXYZAW_from_file, GLXA_to_csv, letter_to_number
-from elements import element_dict, element_list
-from transformer import make_transformer  
-from train import train
-from sample import sample_crystal, make_update_lattice
-from loss import make_loss_fn
-import checkpoint
-from wyckoff import mult_table
-from mcmc import make_mcmc_step
+from crystalformer.src.utils import GLXYZAW_from_file, letter_to_number
+from crystalformer.src.elements import element_dict, element_list
+from crystalformer.src.transformer import make_transformer  
+from crystalformer.src.train import train
+from crystalformer.src.sample import sample_crystal, make_update_lattice
+from crystalformer.src.loss import make_loss_fn
+import crystalformer.src.checkpoint as checkpoint
+from crystalformer.src.wyckoff import mult_table
+from crystalformer.src.mcmc import make_mcmc_step
 
 import argparse
 parser = argparse.ArgumentParser(description='')
@@ -135,7 +135,7 @@ else:
 
     else:
         if args.remove_radioactive:
-            from elements import radioactive_elements_dict, noble_gas_dict
+            from crystalformer.src.elements import radioactive_elements_dict, noble_gas_dict
             # remove radioactive elements and noble gas
             atom_mask = [1] + [1 if i not in radioactive_elements_dict.values() and i not in noble_gas_dict.values() else 0 for i in range(1, args.atom_types)]
             atom_mask = jnp.array(atom_mask)
@@ -326,5 +326,4 @@ else:
         header = False if os.path.exists(filename) else True
         data.to_csv(filename, mode='a', index=False, header=header)
 
-        # GLXA_to_csv(args.spacegroup, L, XYZ, A, num_worker=args.num_io_process, filename=filename)
         print ("Wrote samples to %s"%filename)

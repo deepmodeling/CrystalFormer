@@ -1,6 +1,6 @@
 from config import *
 
-from lattice import symmetrize_lattice, make_lattice_mask
+from crystalformer.src.lattice import symmetrize_lattice, make_lattice_mask
 
 def test_symmetrize_lattice():
     key = jax.random.PRNGKey(42)

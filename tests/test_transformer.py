@@ -1,8 +1,8 @@
 from config import * 
 
-from utils import GLXYZAW_from_file
-from wyckoff import mult_table
-from transformer import make_transformer
+from crystalformer.src.utils import GLXYZAW_from_file
+from crystalformer.src.wyckoff import mult_table
+from crystalformer.src.transformer import make_transformer
 
 def test_autoregressive():
     atom_types = 119
@@ -14,7 +14,7 @@ def test_autoregressive():
     dim = 3
     dropout_rate = 0.0
 
-    csv_file = os.path.join(datadir, 'mini.csv')
+    csv_file = os.path.join(datadir, '../../data/mini.csv')
     G, L, X, A, W = GLXYZAW_from_file(csv_file, atom_types, wyck_types, n_max, dim)
         
     @jax.vmap

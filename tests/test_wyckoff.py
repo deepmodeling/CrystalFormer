@@ -232,7 +232,7 @@ wyckoff_list = [[1],                          # 1
 
 from config import *
 def test_mult_table():
-    from wyckoff import mult_table
+    from crystalformer.src.wyckoff import mult_table
 
     def nonzero_part(arr):
         nonzero_indices = jnp.nonzero(arr)
@@ -276,12 +276,12 @@ def test_wyckoff():
     mult_table = jnp.array(mult_table)
     wmax_table = jnp.array(wmax_table)
     
-    import wyckoff
+    import crystalformer.src.wyckoff as wyckoff
     assert jnp.allclose(mult_table, wyckoff.mult_table)
     assert jnp.allclose(wmax_table, wyckoff.wmax_table)
 
 def test_symmetrize_atoms():
-    from wyckoff import symmetrize_atoms, mult_table, wmax_table, symops
+    from crystalformer.src.wyckoff import symmetrize_atoms, mult_table, wmax_table, symops
     from pymatgen.symmetry.groups import SpaceGroup
 
     #https://github.com/materialsproject/pymatgen/blob/1e347c42c01a4e926e15b910cca8964c1a0cc826/pymatgen/symmetry/groups.py#L547

@@ -3,9 +3,9 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-from von_mises import von_mises_logpdf
-from lattice import make_lattice_mask
-from wyckoff import mult_table, fc_mask_table
+from crystalformer.src.von_mises import von_mises_logpdf
+from crystalformer.src.lattice import make_lattice_mask
+from crystalformer.src.wyckoff import mult_table, fc_mask_table
 
 
 def make_loss_fn(n_max, atom_types, wyck_types, Kx, Kl, transformer, lamb_a=1.0, lamb_w=1.0, lamb_l=1.0):

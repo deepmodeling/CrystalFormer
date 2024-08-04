@@ -6,8 +6,8 @@ import jax.numpy as jnp
 import haiku as hk
 import numpy as np
 
-from attention import MultiHeadAttention
-from wyckoff import wmax_table, dof0_table
+from crystalformer.src.attention import MultiHeadAttention
+from crystalformer.src.wyckoff import wmax_table, dof0_table
 
 def make_transformer(key, Nf, Kx, Kl, n_max, h0_size, num_layers, num_heads, key_size, model_size, embed_size, atom_types, wyck_types, dropout_rate, widening_factor=4, sigmamin=1e-3):
     

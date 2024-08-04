@@ -9,8 +9,8 @@ from functools import partial
 import multiprocessing
 import os
 
-from wyckoff import mult_table
-from elements import element_list
+from crystalformer.src.wyckoff import mult_table
+from crystalformer.src.elements import element_list
 
 @jax.vmap
 def sort_atoms(W, A, X):

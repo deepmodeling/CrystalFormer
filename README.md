@@ -95,7 +95,7 @@ We release the weights of the model trained on the MP-20 dataset. More details c
 ### train
 
 ```bash
-python ./src/main.py --folder ./data/ --train_path YOUR_PATH/mp_20/train.csv --valid_path YOUR_PATH/mp_20/val.csv
+python ./main.py --folder ./data/ --train_path YOUR_PATH/mp_20/train.csv --valid_path YOUR_PATH/mp_20/val.csv
 ```
 
 - `folder`: the folder to save the model and logs
@@ -106,7 +106,7 @@ python ./src/main.py --folder ./data/ --train_path YOUR_PATH/mp_20/train.csv --v
 ### sample
 
 ```bash
-python ./src/main.py --optimizer none --test_path YOUR_PATH/mp_20/test.csv --restore_path YOUR_MODEL_PATH --spacegroup 160 --num_samples 1000  --batchsize 1000 --temperature 1.0
+python ./main.py --optimizer none --test_path YOUR_PATH/mp_20/test.csv --restore_path YOUR_MODEL_PATH --spacegroup 160 --num_samples 1000  --batchsize 1000 --temperature 1.0
 ```
 
 - `optimizer`: the optimizer to use, `none` means no training, only sampling

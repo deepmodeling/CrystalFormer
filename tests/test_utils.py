@@ -1,7 +1,7 @@
 from config import *
 
-from utils import GLXYZAW_from_file
-from wyckoff import mult_table
+from crystalformer.src.utils import GLXYZAW_from_file
+from crystalformer.src.wyckoff import mult_table
 
 def calc_n(G, W):
     @jax.vmap
@@ -17,7 +17,7 @@ def test_utils():
     mult_types = 10
     n_max = 10
     dim = 3
-    csv_file = os.path.join(datadir, 'mini.csv')
+    csv_file = os.path.join(datadir, '../../mini.csv')
 
     G, L, X, A, W = GLXYZAW_from_file(csv_file, atom_types, mult_types, n_max, dim)
     

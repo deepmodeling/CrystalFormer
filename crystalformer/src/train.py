@@ -5,8 +5,8 @@ import os
 import optax
 import math
 
-from utils import shuffle
-import checkpoint
+from crystalformer.src.utils import shuffle
+import crystalformer.src.checkpoint as checkpoint
 
 def train(key, optimizer, opt_state, loss_fn, params, epoch_finished, epochs, batchsize, train_data, valid_data, path):
            

@@ -1,8 +1,8 @@
 from config import *
-from wyckoff import symops
+from crystalformer.src.wyckoff import symops
 
 def test_symops():
-    from wyckoff import wmax_table, mult_table
+    from crystalformer.src.wyckoff import wmax_table, mult_table
     def project_x(g, w, x, idx):
         '''
         One wants to project randomly sampled fc to the nearest Wyckoff point
@@ -70,7 +70,7 @@ def test_symops():
     assert jnp.allclose(y, jnp.array([1-0.1, 1-0.2, 1-0.3]))
 
 def test_sample_top_p():
-    from sample import sample_top_p
+    from crystalformer.src.sample import sample_top_p
     key = jax.random.PRNGKey(42)
     logits = jnp.array([[1.0, 1.0, 2.0, 2.0, 3.0], 
                         [-1.0, 1.0, 4.0, 1.0, 0.0]

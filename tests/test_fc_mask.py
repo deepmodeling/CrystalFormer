@@ -34,8 +34,8 @@ fc_mask_table = jnp.array(fc_mask_table) # 1 in the fc_mask_table select those a
 from config import *
 
 def test_fc_mask():
-    from wyckoff import symops, wmax_table
-    from wyckoff import fc_mask_table as fc_mask_table_test
+    from crystalformer.src.wyckoff import symops, wmax_table
+    from crystalformer.src.wyckoff import fc_mask_table as fc_mask_table_test
 
     for g in range(1, 231):
         for w in range(1, wmax_table[g]+1):
