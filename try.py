@@ -62,8 +62,8 @@ def generate_and_visualize(spacegroup, elements, temperature, seed):
       atom_mask = [1] + [1 if a in idx else 0 for a in range(1, args.atom_types)]
       atom_mask = jnp.array(atom_mask)
       # print ('sampling structure formed by these elements:', elements)
-      print (atom_mask)
-      print("@")
+    #   print (atom_mask)
+    #   print("@")
   else:
       atom_mask = jnp.zeros((args.atom_types), dtype=int) # we will do nothing to a_logit in sampling
       print (atom_mask)
@@ -73,8 +73,8 @@ def generate_and_visualize(spacegroup, elements, temperature, seed):
   key = jax.random.PRNGKey(seed)
   key, subkey = jax.random.split(key)
   start_time = time()
-  import pdb
-  pdb.set_trace()
+#   import pdb
+#   pdb.set_trace()
   XYZ, A, W, M, L = sample_crystal(subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, spacegroup, None, atom_mask, top_p, temperature, temperature, jnp.repeat(args.use_foriloop, args.n_max))
   end_time = time()
   print("executation time:", end_time - start_time)
