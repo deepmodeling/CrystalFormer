@@ -4,6 +4,7 @@ import numpy as np
 import re
 import jax
 import jax.numpy as jnp
+import sys
 
 def from_xyz_str(xyz_str: str):
     """
@@ -12,9 +13,11 @@ def from_xyz_str(xyz_str: str):
     Returns:
         affine operator as a 3x4 array
     """
+    # affine operator = space group = "r'=Ar+b" (rotation+translation)
     rot_matrix = np.zeros((3, 3))
     trans = np.zeros(3)
     tokens = xyz_str.strip().replace(" ", "").lower().split(",")
+    # tokens of the form ['x','y','z'], ['-x','-y','z'], ['-2y+1/2','3x+1/2','z-y+1/2'], etc.
     re_rot = re.compile(r"([+-]?)([\d\.]*)/?([\d\.]*)([x-z])")
     re_trans = re.compile(r"([+-]?)([\d\.]+)/?([\d\.]*)(?![x-z])")
     for i, tok in enumerate(tokens):
@@ -33,22 +36,23 @@ def from_xyz_str(xyz_str: str):
     return np.concatenate( [rot_matrix, trans[:, None]], axis=1) # (3, 4)
 
 
-df = pd.read_csv(os.path.join(os.path.dirname(__file__), '../data/wyckoff_list.csv'))
+# layer.csv: 2D materials - pyXtal
+df = pd.read_csv(os.path.join(os.path.dirname(__file__), '../data/layer.csv'))
 df['Wyckoff Positions'] = df['Wyckoff Positions'].apply(eval)  # convert string to list
 wyckoff_positions = df['Wyckoff Positions'].tolist()
 
-symops = np.zeros((230, 28, 576, 3, 4)) # 576 is the least common multiple for all possible mult
-mult_table = np.zeros((230, 28), dtype=int) # mult_table[g-1, w] = multiplicity , 28 because we had pad 0 
-wmax_table = np.zeros((230,), dtype=int)    # wmax_table[g-1] = number of possible wyckoff letters for g 
-dof0_table = np.ones((230, 28), dtype=bool)  # dof0_table[g-1, w] = True for those wyckoff points with dof = 0 (no continuous dof)
-fc_mask_table = np.zeros((230, 28, 3), dtype=bool) # fc_mask_table[g-1, w] = True for continuous fc 
+symops = np.zeros((80, 19, 48, 3, 4)) # 48 is the least common multiple for all possible mult
+mult_table = np.zeros((80, 19), dtype=int) # mult_table[g-1, w] = multiplicity , 19 because we had pad 0 
+wmax_table = np.zeros((80,), dtype=int)    # wmax_table[g-1] = number of possible wyckoff letters for g 
+dof0_table = np.ones((80, 19), dtype=bool)  # dof0_table[g-1, w] = True for those wyckoff points with dof = 0 (no continuous dof)
+fc_mask_table = np.zeros((80, 19, 3), dtype=bool) # fc_mask_table[g-1, w] = True for continuous fc 
 
 def build_g_code():
     #use general wyckoff position as the code for space groups
     xyz_table = []
     g_table = []
-    for g in range(230):
-        wp0 = wyckoff_positions[g][0]
+    for g in range(80):
+        wp0 = wyckoff_positions[g][0] # most general position (space group elements)
         g_table.append([])
         for xyz in wp0:
             if xyz not in xyz_table: 
@@ -56,15 +60,19 @@ def build_g_code():
             g_table[-1].append(xyz_table.index(xyz))
         assert len(g_table[-1]) == len(set(g_table[-1]))
 
+# xyz_table: all the operations (union of all the space groups)
+# g_table[g-1]: the indices of operations included in the space group #g.
+# g_code[g-1]: bit-string of whether the operation exists in group #g.
+
     g_code = []
-    for g in range(230):
+    for g in range(80):
         g_code.append( [1 if i in g_table[g] else 0 for i in range(len(xyz_table))] )
     del xyz_table
     del g_table
     g_code = jnp.array(g_code)
     return g_code
 
-for g in range(230):
+for g in range(80):
     wyckoffs = []
     for x in wyckoff_positions[g]:
         wyckoffs.append([])
@@ -129,47 +137,32 @@ def symmetrize_atoms(g, w, x):
     return xs
 
 if __name__=='__main__':
+    # print(max([len(w) for w in wyckoff_positions]))
+    # mul = [[len(m) for m in w] for w in wyckoff_positions]
+    # mul = []
+    # for w in wyckoff_positions:
+    #     for m in w:
+    #         mul.append(len(m))
+    # mul_set = set(mul)
+    # print(mul_set)  # lcm = 48
+    
     print (symops.shape)
-    print (symops.size*symops.dtype.itemsize//(1024*1024))
+    print (symops.size*symops.dtype.itemsize//(1024*1024)) # memory usage??
 
     import numpy as np 
     np.set_printoptions(threshold=np.inf)
 
-    print (symops[166-1,3, :6])
-    op = symops[166-1, 3, 0]
+    chosen_g = 4
+    wyckoff_pos = 2
+    # print (symops[62-1,3, :6])
+    op = symops[chosen_g-1, wyckoff_pos, 1]
+    print(symops[chosen_g-1].shape)
     print (op)
     
-    w_max = wmax_table[225-1]
-    m_max = mult_table[225-1, w_max]
+    w_max = wmax_table[chosen_g-1]
+    m_max = mult_table[chosen_g-1, w_max]
     print ('w_max, m_max', w_max, m_max)
 
-    print (fc_mask_table[225-1, 6])
+    print (fc_mask_table[chosen_g-1, wyckoff_pos])
+    print(mult_table)
     sys.exit(0)
-    
-    print ('mult_table')
-    print (mult_table[25-1]) # space group id -> multiplicity table
-    print (mult_table[42-1])
-    print (mult_table[47-1])
-    print (mult_table[99-1])
-    print (mult_table[123-1])
-    print (mult_table[221-1])
-    print (mult_table[166-1])
-
-    print ('dof0_table')
-    print (dof0_table[25-1])
-    print (dof0_table[42-1])
-    print (dof0_table[47-1])
-    print (dof0_table[225-1])
-    print (dof0_table[166-1])
-    
-    print ('wmax_table')
-    print (wmax_table[47-1])
-    print (wmax_table[123-1])
-    print (wmax_table[166-1])
-
-    print ('wmax_table', wmax_table)
-    
-    atom_types = 119 
-    aw_max = wmax_table*(atom_types-1)    # the maximum value of aw
-    print ( (aw_max-1)%(atom_types-1)+1 ) # = 118 
-    print ( (aw_max-1)//(atom_types-1)+1 ) # = wmax

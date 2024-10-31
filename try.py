@@ -98,7 +98,7 @@ def generate_and_visualize(spacegroup, elements, temperature, seed):
 
 
 # ============= params to control the generation =============
-spacegroup = 225   # 设置生成的晶体的空间群，范围为1-230
+spacegroup = 2   # 设置生成的晶体的空间群，范围为1-230
 elements = "Ba Ti O"      # 限制生成晶体所包含的元素种类，每个元素需要用空格隔开，比如 "Ba Ti O"
 temperature = 1.0  # 控制transformer生成的温度，温度越高生成的novelty越高，推荐值为 0.5到1.5
 seed = 42          # 随机种子
