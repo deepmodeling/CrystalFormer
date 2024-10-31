@@ -33,9 +33,9 @@ group.add_argument("--folder", default="../data/", help="the folder to save data
 group.add_argument("--restore_path", default=None, help="checkpoint path or file")
 
 group = parser.add_argument_group('dataset')
-group.add_argument('--train_path', default='/home/wanglei/cdvae/data/mp_20/train.csv', help='')
-group.add_argument('--valid_path', default='/home/wanglei/cdvae/data/mp_20/val.csv', help='')
-group.add_argument('--test_path', default='/home/wanglei/cdvae/data/mp_20/test.csv', help='')
+group.add_argument('--train_path', default='./cdvae/data/mp_20/train.csv', help='')
+group.add_argument('--valid_path', default='./cdvae/data/mp_20/val.csv', help='')
+group.add_argument('--test_path', default='./cdvae/data/mp_20/test.csv', help='')
 
 group = parser.add_argument_group('transformer parameters')
 group.add_argument('--Nf', type=int, default=5, help='number of frequencies for fc')

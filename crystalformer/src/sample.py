@@ -80,8 +80,8 @@ def sample_crystal(key, transformer, params, n_max, batchsize, atom_types, wyck_
         a_logit = h_al[:, :atom_types]
     
         key, subkey = jax.random.split(key)
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
         a_logit = a_logit + jnp.where(atom_mask[i, :], 1e10, 0.0) # enhance the probability of masked atoms (do not need to normalize since we only use it for sampling, not computing logp)
         _temp = jax.lax.cond(i==0,
                                 true_fun=lambda x: jnp.array(T1, dtype=float),

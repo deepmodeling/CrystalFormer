@@ -75,7 +75,8 @@ def generate_and_visualize(spacegroup, elements, temperature, seed):
   start_time = time()
 #   import pdb
 #   pdb.set_trace()
-  XYZ, A, W, M, L = sample_crystal(subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, spacegroup, None, atom_mask, top_p, temperature, temperature, jnp.repeat(args.use_foriloop, args.n_max))
+  constraints = jnp.arange(0, args.n_max, 1)
+  XYZ, A, W, M, L = sample_crystal(subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, spacegroup, None, atom_mask, top_p, temperature, temperature, constraints)
   end_time = time()
   print("executation time:", end_time - start_time)
   
