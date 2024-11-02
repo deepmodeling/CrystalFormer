@@ -6,19 +6,19 @@ def make_lattice_mask():
     return mask for independent lattice params 
     '''
     # 1-2
-    # 3-15 
-    # 16-74
-    # 75-142
-    # 143-194
-    # 195-230    
+    # 3-18 
+    # 19-48
+    # 49-64
+    # 65-72
+    # 73-80    
     mask = [1, 1, 1, 1, 1, 1] * 2 +\
-           [1, 1, 1, 0, 1, 0] * 13+\
-           [1, 1, 1, 0, 0, 0] * 59+\
-           [1, 0, 1, 0, 0, 0] * 68+\
-           [1, 0, 1, 0, 0, 0] * 52+\
-           [1, 0, 0, 0, 0, 0] * 36
+           [1, 1, 1, 0, 1, 0] * 16+\
+           [1, 1, 1, 0, 0, 0] * 30+\
+           [1, 0, 1, 0, 0, 0] * 16+\
+           [1, 0, 1, 0, 0, 0] * 8+\
+           [1, 0, 0, 0, 0, 0] * 8
 
-    return jnp.array(mask).reshape(230, 6)
+    return jnp.array(mask).reshape(80, 6)
 
 def symmetrize_lattice(spacegroup, lattice):
     '''
@@ -29,10 +29,10 @@ def symmetrize_lattice(spacegroup, lattice):
 
     L = lattice
     L = jnp.where(spacegroup <= 2,   L, jnp.array([a, b, c, 90., beta, 90.]))
-    L = jnp.where(spacegroup <= 15,  L, jnp.array([a, b, c, 90., 90., 90.]))
-    L = jnp.where(spacegroup <= 74,  L, jnp.array([a, a, c, 90., 90., 90.]))
-    L = jnp.where(spacegroup <= 142, L, jnp.array([a, a, c, 90., 90., 120.]))
-    L = jnp.where(spacegroup <= 194, L, jnp.array([a, a, a, 90., 90., 90.]))
+    L = jnp.where(spacegroup <= 18,  L, jnp.array([a, b, c, 90., 90., 90.]))
+    L = jnp.where(spacegroup <= 48,  L, jnp.array([a, a, c, 90., 90., 90.]))
+    L = jnp.where(spacegroup <= 64, L, jnp.array([a, a, c, 90., 90., 120.]))
+    L = jnp.where(spacegroup <= 72, L, jnp.array([a, a, a, 90., 90., 90.]))
 
     return L
 

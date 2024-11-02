@@ -41,11 +41,34 @@ df = pd.read_csv(os.path.join(os.path.dirname(__file__), '../data/layer.csv'))
 df['Wyckoff Positions'] = df['Wyckoff Positions'].apply(eval)  # convert string to list
 wyckoff_positions = df['Wyckoff Positions'].tolist()
 
-symops = np.zeros((80, 19, 48, 3, 4)) # 48 is the least common multiple for all possible mult
-mult_table = np.zeros((80, 19), dtype=int) # mult_table[g-1, w] = multiplicity , 19 because we had pad 0 
-wmax_table = np.zeros((80,), dtype=int)    # wmax_table[g-1] = number of possible wyckoff letters for g 
-dof0_table = np.ones((80, 19), dtype=bool)  # dof0_table[g-1, w] = True for those wyckoff points with dof = 0 (no continuous dof)
-fc_mask_table = np.zeros((80, 19, 3), dtype=bool) # fc_mask_table[g-1, w] = True for continuous fc 
+
+# ll-edit
+
+def group_num(wyckoff_list):
+    return len(wyckoff_list)
+
+def max_wyckoff_letter(wyckoff_list):
+    return max([len(w) for w in wyckoff_list])
+
+from math import lcm
+def lcm_multiplicity(wyckoff_list):
+    mult = []
+    for g in wyckoff_list:
+        for w in g:
+            mult.append(len(w))
+
+    return lcm(*mult)
+
+g_num = group_num(wyckoff_positions)
+max_wl = max_wyckoff_letter(wyckoff_positions)
+lcm_w = lcm_multiplicity(wyckoff_positions)
+# ll-edit
+
+symops = np.zeros((g_num, max_wl+1, lcm_w, 3, 4)) # 48 is the least common multiple for all possible mult
+mult_table = np.zeros((g_num, max_wl+1), dtype=int) # mult_table[g-1, w] = multiplicity , 19 because we had pad 0 
+wmax_table = np.zeros((g_num,), dtype=int)    # wmax_table[g-1] = number of possible wyckoff letters for g 
+dof0_table = np.ones((g_num, max_wl+1), dtype=bool)  # dof0_table[g-1, w] = True for those wyckoff points with dof = 0 (no continuous dof)
+fc_mask_table = np.zeros((g_num, max_wl+1, 3), dtype=bool) # fc_mask_table[g-1, w] = True for continuous fc 
 
 def build_g_code():
     #use general wyckoff position as the code for space groups
@@ -137,6 +160,7 @@ def symmetrize_atoms(g, w, x):
     return xs
 
 if __name__=='__main__':
+    # print(len(wyckoff_positions))
     # print(max([len(w) for w in wyckoff_positions]))
     # mul = [[len(m) for m in w] for w in wyckoff_positions]
     # mul = []
@@ -145,6 +169,7 @@ if __name__=='__main__':
     #         mul.append(len(m))
     # mul_set = set(mul)
     # print(mul_set)  # lcm = 48
+    # print(g_num, max_wl, lcm_w)
     
     print (symops.shape)
     print (symops.size*symops.dtype.itemsize//(1024*1024)) # memory usage??
@@ -164,5 +189,5 @@ if __name__=='__main__':
     print ('w_max, m_max', w_max, m_max)
 
     print (fc_mask_table[chosen_g-1, wyckoff_pos])
-    print(mult_table)
+    # print(mult_table)
     sys.exit(0)
