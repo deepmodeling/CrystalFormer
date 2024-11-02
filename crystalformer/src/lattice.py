@@ -15,8 +15,8 @@ def make_lattice_mask():
            [1, 1, 1, 0, 1, 0] * 16+\
            [1, 1, 1, 0, 0, 0] * 30+\
            [1, 0, 1, 0, 0, 0] * 16+\
-           [1, 0, 1, 0, 0, 0] * 8+\
-           [1, 0, 0, 0, 0, 0] * 8
+           [1, 0, 1, 0, 0, 0] * 16
+        #    [1, 0, 0, 0, 0, 0] * 8
 
     return jnp.array(mask).reshape(80, 6)
 
@@ -32,7 +32,7 @@ def symmetrize_lattice(spacegroup, lattice):
     L = jnp.where(spacegroup <= 18,  L, jnp.array([a, b, c, 90., 90., 90.]))
     L = jnp.where(spacegroup <= 48,  L, jnp.array([a, a, c, 90., 90., 90.]))
     L = jnp.where(spacegroup <= 64, L, jnp.array([a, a, c, 90., 90., 120.]))
-    L = jnp.where(spacegroup <= 72, L, jnp.array([a, a, a, 90., 90., 90.]))
+    # L = jnp.where(spacegroup <= 72, L, jnp.array([a, a, a, 90., 90., 90.]))
 
     return L
 
