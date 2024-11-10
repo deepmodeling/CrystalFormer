@@ -4,6 +4,7 @@ import jax.numpy as jnp
 from functools import partial
 
 from crystalformer.src.von_mises import von_mises_logpdf
+from crystalformer.src.gaussian import gaussian_logpdf
 from crystalformer.src.lattice import make_lattice_mask
 from crystalformer.src.wyckoff import mult_table, fc_mask_table
 
@@ -38,6 +39,17 @@ def make_loss_fn(n_max, atom_types, wyck_types, Kx, Kl, transformer, lamb_a=1.0,
         logp_x = jnp.sum(jnp.where(fc_mask_x, logp_x, jnp.zeros_like(logp_x)))
 
         return logp_x
+    
+    # ll-edit
+    def compute_logp_z(h_z, Z, fc_mask_z):
+        z_logit, loc, kappa = jnp.split(h_z, [Kx, 2*Kx], axis=-1)
+        z_loc = loc.reshape(n_max, Kx)
+        kappa = kappa.reshape(n_max, Kx)
+        logp_z = jax.vmap(gaussian_logpdf, (None, 1, 1), 1)((Z-0.5)*2*jnp.pi, loc, kappa) # (n_max, Kx)
+        logp_z = jax.scipy.special.logsumexp(z_logit + logp_z, axis=1) # (n_max, )
+        logp_z = jnp.sum(jnp.where(fc_mask_z, logp_z, jnp.zeros_like(logp_z)))
+
+        return logp_z
 
     @partial(jax.vmap, in_axes=(None, None, 0, 0, 0, 0, 0, None), out_axes=0) # batch 
     def logp_fn(params, key, G, L, XYZ, A, W, is_train):
@@ -69,7 +81,7 @@ def make_loss_fn(n_max, atom_types, wyck_types, Kx, Kl, transformer, lamb_a=1.0,
         fc_mask = jnp.logical_and((W>0)[:, None], fc_mask_table[G-1, W]) # (n_max, 3)
         logp_x = compute_logp_x(h_x, X, fc_mask[:, 0])
         logp_y = compute_logp_x(h_y, Y, fc_mask[:, 1])
-        logp_z = compute_logp_x(h_z, Z, fc_mask[:, 2])
+        logp_z = compute_logp_z(h_z, Z, fc_mask[:, 2])
 
         logp_xyz = logp_x + logp_y + logp_z
 
