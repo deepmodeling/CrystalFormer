@@ -1,5 +1,8 @@
 from config import *
 
+import sys
+sys.path.append('../crystalformer')
+
 from crystalformer.src.lattice import symmetrize_lattice, make_lattice_mask
 
 def test_symmetrize_lattice():
