@@ -81,7 +81,10 @@ def _von_mises_centered(key, concentration, shape, dtype):
         y = concentration * (s - w)
         v = random.uniform(key=uni_vkey, shape=shape, dtype=concentration.dtype)
 
-        accept = (y * (2.0 - y) >= v) | (jnp.log(y / v) + 1.0 >= y)
+        accept = (y * (2.0 - y) >= v) | (jnp.log(y / v) + 1.0 >= y) 
+        # y/exp(y-1) >= v, y(2-y) >= v
+# y = k*(s*s - 1 )/( s+cos(pi*u) )
+
 
         return i + 1, key, accept | done, u, w
 
