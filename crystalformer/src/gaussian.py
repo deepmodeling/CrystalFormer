@@ -2,6 +2,10 @@ import jax
 from jax import jit, lax, random
 import jax.numpy as jnp
 from functools import partial
+from crystalformer.src.von_mises import sample_von_mises
+
+def sample_twodim(key, loc, concentration, shape):
+    
 
 def sample_gaussian(key, loc, concentration, shape):
     samples = gaussian_centered(key, concentration, shape)
