@@ -43,6 +43,7 @@ from time import time
 from pymatgen.io.ase import AseAtomsAdaptor
 from ase.visualize import view
 
+from sym_group import SpaceGroup
 from sample import sample_crystal
 from elements import element_dict, element_list
 from scripts.awl2struct import get_struct_from_lawx
@@ -76,7 +77,7 @@ def generate_and_visualize(spacegroup, elements, temperature, seed):
 #   import pdb
 #   pdb.set_trace()
   constraints = jnp.arange(0, args.n_max, 1)
-  XYZ, A, W, M, L = sample_crystal(subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, spacegroup, None, atom_mask, top_p, temperature, temperature, constraints)
+  XYZ, A, W, M, L = sample_crystal(SpaceGroup(), subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, spacegroup, None, atom_mask, top_p, temperature, temperature, constraints)
   end_time = time()
   print("executation time:", end_time - start_time)
   

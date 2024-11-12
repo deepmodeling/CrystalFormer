@@ -1,15 +1,18 @@
+import sys
+sys.path.append('../../crystalformer')
+
 import jax
 #jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from functools import partial
 
-from crystalformer.src.von_mises import von_mises_logpdf
-from crystalformer.src.gaussian import gaussian_logpdf
+# from crystalformer.src.von_mises import von_mises_logpdf
 from crystalformer.src.lattice import make_lattice_mask
 from crystalformer.src.wyckoff import mult_table, fc_mask_table
+from crystalformer.src.sym_group import SymGroup, SpaceGroup
 
 
-def make_loss_fn(n_max, atom_types, wyck_types, Kx, Kl, transformer, lamb_a=1.0, lamb_w=1.0, lamb_l=1.0):
+def make_loss_fn(sym_group, n_max, atom_types, wyck_types, Kx, Kl, transformer, lamb_a=1.0, lamb_w=1.0, lamb_l=1.0):
     """
     Args:
       n_max: maximum number of atoms in the unit cell
@@ -30,11 +33,11 @@ def make_loss_fn(n_max, atom_types, wyck_types, Kx, Kl, transformer, lamb_a=1.0,
     coord_types = 3*Kx
     lattice_mask = make_lattice_mask()
 
-    def compute_logp_x(h_x, X, fc_mask_x):
+    def compute_logp_x(distribution, h_x, X, fc_mask_x):
         x_logit, loc, kappa = jnp.split(h_x, [Kx, 2*Kx], axis=-1)
         x_loc = loc.reshape(n_max, Kx)
         kappa = kappa.reshape(n_max, Kx)
-        logp_x = jax.vmap(von_mises_logpdf, (None, 1, 1), 1)((X-0.5)*2*jnp.pi, loc, kappa) # (n_max, Kx)
+        logp_x = jax.vmap(distribution, (None, 1, 1), 1)((X-0.5)*2*jnp.pi, loc, kappa) # (n_max, Kx)
         logp_x = jax.scipy.special.logsumexp(x_logit + logp_x, axis=1) # (n_max, )
         logp_x = jnp.sum(jnp.where(fc_mask_x, logp_x, jnp.zeros_like(logp_x)))
 
@@ -54,6 +57,7 @@ def make_loss_fn(n_max, atom_types, wyck_types, Kx, Kl, transformer, lamb_a=1.0,
     @partial(jax.vmap, in_axes=(None, None, 0, 0, 0, 0, 0, None), out_axes=0) # batch 
     def logp_fn(params, key, G, L, XYZ, A, W, is_train):
         '''
+        sym_group: SpaceGroup, LayerGroup, ...
         G: scalar 
         L: (6,) [a, b, c, alpha, beta, gamma] 
         XYZ: (n_max, 3)
@@ -79,9 +83,9 @@ def make_loss_fn(n_max, atom_types, wyck_types, Kx, Kl, transformer, lamb_a=1.0,
         X, Y, Z = XYZ[:, 0], XYZ[:, 1], XYZ[:,2]
 
         fc_mask = jnp.logical_and((W>0)[:, None], fc_mask_table[G-1, W]) # (n_max, 3)
-        logp_x = compute_logp_x(h_x, X, fc_mask[:, 0])
-        logp_y = compute_logp_x(h_y, Y, fc_mask[:, 1])
-        logp_z = compute_logp_z(h_z, Z, fc_mask[:, 2])
+        logp_x = compute_logp_x(sym_group.distribution('x'), h_x, X, fc_mask[:, 0])
+        logp_y = compute_logp_x(sym_group.distribution('y'), h_y, Y, fc_mask[:, 1])
+        logp_z = compute_logp_x(sym_group.distribution('z'), h_z, Z, fc_mask[:, 2])
 
         logp_xyz = logp_x + logp_y + logp_z
 
@@ -124,7 +128,7 @@ if __name__=='__main__':
 
     params, transformer = make_transformer(key, Nf, Kx, Kl, n_max, 128, 4, 4, 8, 16, 16, atom_types, wyck_types, dropout_rate) 
  
-    loss_fn, _ = make_loss_fn(n_max, atom_types, wyck_types, Kx, Kl, transformer)
+    loss_fn, _ = make_loss_fn(SpaceGroup(), n_max, atom_types, wyck_types, Kx, Kl, transformer)
     
     value = jax.jit(loss_fn, static_argnums=7)(params, key, G[:1], L[:1], XYZ[:1], A[:1], W[:1], True)
     print (value)
