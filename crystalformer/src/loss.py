@@ -43,8 +43,8 @@ def make_loss_fn(sym_group, n_max, atom_types, wyck_types, Kx, Kl, transformer, 
 
         return logp_x
 
-    @partial(jax.vmap, in_axes=(None, None, None, 0, 0, 0, 0, 0, None), out_axes=0) # batch 
-    def logp_fn(sym_group, params, key, G, L, XYZ, A, W, is_train):
+    @partial(jax.vmap, in_axes=(None, None, 0, 0, 0, 0, 0, None), out_axes=0) # batch 
+    def logp_fn(params, key, G, L, XYZ, A, W, is_train):
         '''
         sym_group: SpaceGroup, LayerGroup, ...
         G: scalar 
@@ -72,9 +72,9 @@ def make_loss_fn(sym_group, n_max, atom_types, wyck_types, Kx, Kl, transformer, 
         X, Y, Z = XYZ[:, 0], XYZ[:, 1], XYZ[:,2]
 
         fc_mask = jnp.logical_and((W>0)[:, None], fc_mask_table[G-1, W]) # (n_max, 3)
-        logp_x = compute_logp_x(sym_group.x_distribution(), h_x, X, fc_mask[:, 0])
-        logp_y = compute_logp_x(sym_group.y_distribution(), h_y, Y, fc_mask[:, 1])
-        logp_z = compute_logp_x(sym_group.z_distribution(), h_z, Z, fc_mask[:, 2])
+        logp_x = compute_logp_x(sym_group.distribution('x'), h_x, X, fc_mask[:, 0])
+        logp_y = compute_logp_x(sym_group.distribution('y'), h_y, Y, fc_mask[:, 1])
+        logp_z = compute_logp_x(sym_group.distribution('z'), h_z, Z, fc_mask[:, 2])
 
         logp_xyz = logp_x + logp_y + logp_z
 
@@ -88,8 +88,8 @@ def make_loss_fn(sym_group, n_max, atom_types, wyck_types, Kx, Kl, transformer, 
         
         return logp_w, logp_xyz, logp_a, logp_l
 
-    def loss_fn(sym_group, params, key, G, L, XYZ, A, W, is_train):
-        logp_w, logp_xyz, logp_a, logp_l = logp_fn(sym_group, params, key, G, L, XYZ, A, W, is_train)
+    def loss_fn(params, key, G, L, XYZ, A, W, is_train):
+        logp_w, logp_xyz, logp_a, logp_l = logp_fn(params, key, G, L, XYZ, A, W, is_train)
         loss_w = -jnp.mean(logp_w)
         loss_xyz = -jnp.mean(logp_xyz)
         loss_a = -jnp.mean(logp_a)
@@ -119,8 +119,8 @@ if __name__=='__main__':
  
     loss_fn, _ = make_loss_fn(SpaceGroup(), n_max, atom_types, wyck_types, Kx, Kl, transformer)
     
-    value = jax.jit(loss_fn, static_argnums=(0,8))(SpaceGroup(), params, key, G[:1], L[:1], XYZ[:1], A[:1], W[:1], True)
+    value = jax.jit(loss_fn, static_argnums=7)(params, key, G[:1], L[:1], XYZ[:1], A[:1], W[:1], True)
     print (value)
 
-    value = jax.jit(loss_fn, static_argnums=(0,8))(SpaceGroup(), params, key, G[:1], L[:1], XYZ[:1]+1.0, A[:1], W[:1], True)
+    value = jax.jit(loss_fn, static_argnums=7)(params, key, G[:1], L[:1], XYZ[:1]+1.0, A[:1], W[:1], True)
     print (value)

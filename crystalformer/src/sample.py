@@ -1,8 +1,11 @@
+import sys
+sys.path.append('../../crystalformer')
+
 import jax
 import jax.numpy as jnp
 from functools import partial
 
-from crystalformer.src.von_mises import sample_von_mises
+from crystalformer.src.sym_group import SymGroup, SpaceGroup
 from crystalformer.src.lattice import symmetrize_lattice
 from crystalformer.src.wyckoff import mult_table, symops
 
@@ -48,19 +51,19 @@ def sample_top_p(key, logits, p, temperature):
     samples = jax.random.categorical(key, logits/temperature, axis=1)
     return samples
 
-def sample_x(key, h_x, Kx, top_p, temperature, batchsize):
+def sample_x(sym_group, axis, key, h_x, Kx, top_p, temperature, batchsize):
     coord_types = 3*Kx 
     x_logit, loc, kappa = jnp.split(h_x[:, :coord_types], [Kx, 2*Kx], axis=-1)
     key, key_k, key_x = jax.random.split(key, 3)
     k = sample_top_p(key_k, x_logit, top_p, temperature)
     loc = loc.reshape(batchsize, Kx)[jnp.arange(batchsize), k]
     kappa = kappa.reshape(batchsize, Kx)[jnp.arange(batchsize), k]
-    x = sample_von_mises(key_x, loc, kappa/temperature, (batchsize,))
+    x = sym_group.sample(axis)(key_x, loc, kappa/temperature, (batchsize,))
     x = (x+ jnp.pi)/(2.0*jnp.pi) # wrap into [0, 1]
     return key, x 
 
-@partial(jax.jit, static_argnums=(1, 3, 4, 5, 6, 7, 8, 9, 12, 14))
-def sample_crystal(key, transformer, params, n_max, batchsize, atom_types, wyck_types, Kx, Kl, g, w_mask, atom_mask, top_p, temperature, T1, constraints):
+@partial(jax.jit, static_argnums=(0, 2, 4, 5, 6, 7, 8, 9, 10, 13, 15))
+def sample_crystal(sym_group, key, transformer, params, n_max, batchsize, atom_types, wyck_types, Kx, Kl, g, w_mask, atom_mask, top_p, temperature, T1, constraints):
        
     def body_fn(i, state):
         key, W, A, X, Y, Z, L = state 
@@ -97,7 +100,7 @@ def sample_crystal(key, transformer, params, n_max, batchsize, atom_types, wyck_
     
         # (3) X
         h_x = inference(transformer, params, g, W, A, X, Y, Z)[:, 5*i+2] # (batchsize, output_size)
-        key, x = sample_x(key, h_x, Kx, top_p, temperature, batchsize)
+        key, x = sample_x(sym_group, 'x', key, h_x, Kx, top_p, temperature, batchsize)
     
         # project to the first WP
         xyz = jnp.concatenate([x[:, None], 
@@ -110,7 +113,7 @@ def sample_crystal(key, transformer, params, n_max, batchsize, atom_types, wyck_
     
         # (4) Y
         h_y = inference(transformer, params, g, W, A, X, Y, Z)[:, 5*i+3] # (batchsize, output_size)
-        key, y = sample_x(key, h_y, Kx, top_p, temperature, batchsize)
+        key, y = sample_x(sym_group, 'y', key, h_y, Kx, top_p, temperature, batchsize)
         
         # project to the first WP
         xyz = jnp.concatenate([X[:, i][:, None], 
@@ -123,7 +126,7 @@ def sample_crystal(key, transformer, params, n_max, batchsize, atom_types, wyck_
     
         # (5) Z
         h_z = inference(transformer, params, g, W, A, X, Y, Z)[:, 5*i+4] # (batchsize, output_size)
-        key, z = sample_x(key, h_z, Kx, top_p, temperature, batchsize)
+        key, z = sample_x(sym_group, 'z', key, h_z, Kx, top_p, temperature, batchsize)
         
         # project to the first WP
         xyz = jnp.concatenate([X[:, i][:, None], 

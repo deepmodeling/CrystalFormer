@@ -7,6 +7,22 @@ from jax import jit, lax, random
 import jax.numpy as jnp
 from functools import partial
 
+
+
+
+# ll-edit
+def sample_gaussian(key, loc, concentration, shape):
+    standard_gaussian = random.normal(key, shape=shape)
+    sample = standard_gaussian / jnp.sqrt(concentration) + loc
+
+    return sample
+
+
+
+
+
+
+
 def sample_von_mises(key, loc, concentration, shape):
     """Generate sample from von Mises distribution
 
@@ -106,6 +122,13 @@ def von_mises_logpdf(x, loc, concentration):
     '''
     return -(jnp.log(2 * jnp.pi) + jnp.log(jax.scipy.special.i0e(concentration))
               ) + concentration * (jnp.cos((x - loc) % (2 * jnp.pi)) - 1)
+
+def gaussian_logpdf(x, loc, concentration):
+    '''
+    concentration = kappa in von mises distribution = 1/variance
+    concentration = 1/sigma^2 in gaussian distribution
+    '''
+    return -0.5 * (jnp.log(2 * jnp.pi) - jnp.log(concentration) + concentration * (x - loc) * (x - loc))
 
 if __name__=='__main__':
     key = jax.random.PRNGKey(42)
