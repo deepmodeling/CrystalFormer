@@ -70,4 +70,5 @@ def test_perm():
     print (W)
     assert jnp.allclose(W, W[idx])
 
-test_autoregressive()
+if __name__ == '__main__':
+    test_autoregressive()
