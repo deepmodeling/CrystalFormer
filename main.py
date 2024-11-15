@@ -16,10 +16,13 @@ from crystalformer.src.loss import make_loss_fn
 import crystalformer.src.checkpoint as checkpoint
 from crystalformer.src.wyckoff import mult_table
 from crystalformer.src.mcmc import make_mcmc_step
+from crystalformer.src.sym_group import SymGroup, SpaceGroup, LayerGroup
 
 import argparse
 
 if __name__ == '__main__':
+    # print(mult_table.shape)
+    
     parser = argparse.ArgumentParser(description='')
 
     group = parser.add_argument_group('training parameters')
@@ -176,7 +179,7 @@ if __name__ == '__main__':
 
     ################### Train #############################
 
-    loss_fn, logp_fn = make_loss_fn(args.n_max, args.atom_types, args.wyck_types, args.Kx, args.Kl, transformer, args.lamb_a, args.lamb_w, args.lamb_l)
+    loss_fn, logp_fn = make_loss_fn(LayerGroup(), args.n_max, args.atom_types, args.wyck_types, args.Kx, args.Kl, transformer, args.lamb_a, args.lamb_w, args.lamb_l)
 
     print("\n========== Prepare logs ==========")
     if args.optimizer != "none" or args.restore_path is None:
@@ -265,7 +268,7 @@ if __name__ == '__main__':
 
         mc_steps = args.nsweeps * args.n_max
         print("mc_steps", mc_steps)
-        mcmc = make_mcmc_step(params, n_max=args.n_max, atom_types=args.atom_types, atom_mask=atom_mask, constraints=constraints)
+        mcmc = make_mcmc_step(params, n_max=args.n_max, atom_types=args.atom_types, sym_group=LayerGroup(), atom_mask=atom_mask, constraints=constraints)
         update_lattice = make_update_lattice(transformer, params, args.atom_types, args.Kl, args.top_p, args.temperature)
 
         num_batches = math.ceil(args.num_samples / args.batchsize)
@@ -277,7 +280,7 @@ if __name__ == '__main__':
             end_idx = min(start_idx + args.batchsize, args.num_samples)
             n_sample = end_idx - start_idx
             key, subkey = jax.random.split(key)
-            XYZ, A, W, M, L = sample_crystal(subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, args.spacegroup, w_mask, atom_mask, args.top_p, args.temperature, T1, constraints)
+            XYZ, A, W, M, L = sample_crystal(LayerGroup(), subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, args.spacegroup, w_mask, atom_mask, args.top_p, args.temperature, T1, constraints)
 
             G = args.spacegroup * jnp.ones((n_sample), dtype=int)
             if args.mcmc:
@@ -329,3 +332,4 @@ if __name__ == '__main__':
             data.to_csv(filename, mode='a', index=False, header=header)
 
             print ("Wrote samples to %s"%filename)
+    

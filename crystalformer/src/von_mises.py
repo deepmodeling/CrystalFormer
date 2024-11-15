@@ -135,5 +135,5 @@ if __name__=='__main__':
     loc = jnp.array([-1.0, 1.0, 0.0])
     kappa = jnp.array([10.0, 10.0, 100.0])
     x = sample_von_mises(key, loc, kappa, (3, ))
-    print (x)
+    print(type(x))
 

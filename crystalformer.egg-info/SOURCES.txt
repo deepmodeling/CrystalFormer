@@ -6,6 +6,7 @@ crystalformer.egg-info/PKG-INFO
 crystalformer.egg-info/SOURCES.txt
 crystalformer.egg-info/dependency_links.txt
 crystalformer.egg-info/top_level.txt
+crystalformer/data/layer.csv
 crystalformer/data/wyckoff_list.csv
 crystalformer/data/wyckoff_symbols.csv
 crystalformer/extension/__init__.py

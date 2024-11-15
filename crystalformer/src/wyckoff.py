@@ -33,21 +33,43 @@ def from_xyz_str(xyz_str: str):
     return np.concatenate( [rot_matrix, trans[:, None]], axis=1) # (3, 4)
 
 
-df = pd.read_csv(os.path.join(os.path.dirname(__file__), '../data/wyckoff_list.csv'))
+df = pd.read_csv(os.path.join(os.path.dirname(__file__), '../data/layer.csv'))
 df['Wyckoff Positions'] = df['Wyckoff Positions'].apply(eval)  # convert string to list
 wyckoff_positions = df['Wyckoff Positions'].tolist()
 
-symops = np.zeros((230, 28, 576, 3, 4)) # 576 is the least common multiple for all possible mult
-mult_table = np.zeros((230, 28), dtype=int) # mult_table[g-1, w] = multiplicity , 28 because we had pad 0 
-wmax_table = np.zeros((230,), dtype=int)    # wmax_table[g-1] = number of possible wyckoff letters for g 
-dof0_table = np.ones((230, 28), dtype=bool)  # dof0_table[g-1, w] = True for those wyckoff points with dof = 0 (no continuous dof)
-fc_mask_table = np.zeros((230, 28, 3), dtype=bool) # fc_mask_table[g-1, w] = True for continuous fc 
+# ll-edit
+
+def group_num(wyckoff_list):
+    return len(wyckoff_list)
+
+def max_wyckoff_letter(wyckoff_list):
+    return max([len(w) for w in wyckoff_list])
+
+from math import lcm
+def lcm_multiplicity(wyckoff_list):
+    mult = []
+    for g in wyckoff_list:
+        for w in g:
+            mult.append(len(w))
+
+    return lcm(*mult)
+
+g_num = group_num(wyckoff_positions)
+max_wl = max_wyckoff_letter(wyckoff_positions)
+lcm_w = lcm_multiplicity(wyckoff_positions)
+# ll-edit
+
+symops = np.zeros((g_num, max_wl+1, lcm_w, 3, 4)) # 48 is the least common multiple for all possible mult
+mult_table = np.zeros((g_num, max_wl+1), dtype=int) # mult_table[g-1, w] = multiplicity , 19 because we had pad 0 
+wmax_table = np.zeros((g_num,), dtype=int)    # wmax_table[g-1] = number of possible wyckoff letters for g 
+dof0_table = np.ones((g_num, max_wl+1), dtype=bool)  # dof0_table[g-1, w] = True for those wyckoff points with dof = 0 (no continuous dof)
+fc_mask_table = np.zeros((g_num, max_wl+1, 3), dtype=bool) # fc_mask_table[g-1, w] = True for continuous fc 
 
 def build_g_code():
     #use general wyckoff position as the code for space groups
     xyz_table = []
     g_table = []
-    for g in range(230):
+    for g in range(g_num):
         wp0 = wyckoff_positions[g][0]
         g_table.append([])
         for xyz in wp0:
@@ -57,14 +79,14 @@ def build_g_code():
         assert len(g_table[-1]) == len(set(g_table[-1]))
 
     g_code = []
-    for g in range(230):
+    for g in range(g_num):
         g_code.append( [1 if i in g_table[g] else 0 for i in range(len(xyz_table))] )
     del xyz_table
     del g_table
     g_code = jnp.array(g_code)
     return g_code
 
-for g in range(230):
+for g in range(g_num):
     wyckoffs = []
     for x in wyckoff_positions[g]:
         wyckoffs.append([])
@@ -132,44 +154,44 @@ if __name__=='__main__':
     print (symops.shape)
     print (symops.size*symops.dtype.itemsize//(1024*1024))
 
-    import numpy as np 
-    np.set_printoptions(threshold=np.inf)
+    # import numpy as np 
+    # np.set_printoptions(threshold=np.inf)
 
-    print (symops[166-1,3, :6])
-    op = symops[166-1, 3, 0]
-    print (op)
+    # print (symops[166-1,3, :6])
+    # op = symops[166-1, 3, 0]
+    # print (op)
     
-    w_max = wmax_table[225-1]
-    m_max = mult_table[225-1, w_max]
-    print ('w_max, m_max', w_max, m_max)
+    # w_max = wmax_table[225-1]
+    # m_max = mult_table[225-1, w_max]
+    # print ('w_max, m_max', w_max, m_max)
 
-    print (fc_mask_table[225-1, 6])
-    sys.exit(0)
+    # print (fc_mask_table[225-1, 6])
+    # # sys.exit(0)
     
-    print ('mult_table')
-    print (mult_table[25-1]) # space group id -> multiplicity table
-    print (mult_table[42-1])
-    print (mult_table[47-1])
-    print (mult_table[99-1])
-    print (mult_table[123-1])
-    print (mult_table[221-1])
-    print (mult_table[166-1])
+    # print ('mult_table')
+    # print (mult_table[25-1]) # space group id -> multiplicity table
+    # print (mult_table[42-1])
+    # print (mult_table[47-1])
+    # print (mult_table[99-1])
+    # print (mult_table[123-1])
+    # print (mult_table[221-1])
+    # print (mult_table[166-1])
 
-    print ('dof0_table')
-    print (dof0_table[25-1])
-    print (dof0_table[42-1])
-    print (dof0_table[47-1])
-    print (dof0_table[225-1])
-    print (dof0_table[166-1])
+    # print ('dof0_table')
+    # print (dof0_table[25-1])
+    # print (dof0_table[42-1])
+    # print (dof0_table[47-1])
+    # print (dof0_table[225-1])
+    # print (dof0_table[166-1])
     
-    print ('wmax_table')
-    print (wmax_table[47-1])
-    print (wmax_table[123-1])
-    print (wmax_table[166-1])
+    # print ('wmax_table')
+    # print (wmax_table[47-1])
+    # print (wmax_table[123-1])
+    # print (wmax_table[166-1])
 
-    print ('wmax_table', wmax_table)
+    # print ('wmax_table', wmax_table)
     
-    atom_types = 119 
-    aw_max = wmax_table*(atom_types-1)    # the maximum value of aw
-    print ( (aw_max-1)%(atom_types-1)+1 ) # = 118 
-    print ( (aw_max-1)//(atom_types-1)+1 ) # = wmax
+    # atom_types = 119 
+    # aw_max = wmax_table*(atom_types-1)    # the maximum value of aw
+    # print ( (aw_max-1)%(atom_types-1)+1 ) # = 118 
+    # print ( (aw_max-1)//(atom_types-1)+1 ) # = wmax
