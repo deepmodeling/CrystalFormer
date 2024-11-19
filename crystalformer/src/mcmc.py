@@ -1,14 +1,10 @@
-import sys
-sys.path.append('../../crystalformer')
-
 import jax
 import jax.numpy as jnp
 from functools import partial
 
 from crystalformer.src.wyckoff import fc_mask_table
 from crystalformer.src.von_mises import sample_von_mises
-from crystalformer.src.sym_group import SymGroup, SpaceGroup
-
+from crystalformer.src.sym_group import SymGroup, SpaceGroup, LayerGroup
 
 get_fc_mask = lambda g, w: jnp.logical_and((w>0)[:, None], fc_mask_table[g-1, w])
 
@@ -131,7 +127,7 @@ if __name__  == "__main__":
 
     key = jax.random.PRNGKey(42)
 
-    params, transformer = make_transformer(key, Nf, Kx, Kl, n_max, 128, 4, 4, 8, 16, 16, atom_types, wyck_types, dropout_rate) 
+    params, transformer = make_transformer(SpaceGroup(), key, Nf, Kx, Kl, n_max, 128, 4, 4, 8, 16, 16, atom_types, wyck_types, dropout_rate) 
  
     loss_fn, logp_fn = make_loss_fn(SpaceGroup(), n_max, atom_types, wyck_types, Kx, Kl, transformer)
 
