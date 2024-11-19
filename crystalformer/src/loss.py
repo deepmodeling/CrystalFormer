@@ -1,6 +1,3 @@
-import sys
-sys.path.append('../../crystalformer')
-
 import jax
 #jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
@@ -8,7 +5,6 @@ from functools import partial
 
 # from crystalformer.src.von_mises import von_mises_logpdf
 # from crystalformer.src.lattice import make_lattice_mask
-from crystalformer.src.wyckoff import mult_table, fc_mask_table
 from crystalformer.src.sym_group import *
 
 
@@ -55,7 +51,7 @@ def make_loss_fn(sym_group, n_max, atom_types, wyck_types, Kx, Kl, transformer, 
         '''
 
         num_sites = jnp.sum(A!=0)
-        M = mult_table[G-1, W]  # (n_max,) multplicities
+        M = sym_group.mult_table[G-1, W]  # (n_max,) multplicities
         #num_atoms = jnp.sum(M)
 
         h = transformer(params, key, G, XYZ, A, W, M, is_train) # (5*n_max+1, ...)
@@ -71,7 +67,7 @@ def make_loss_fn(sym_group, n_max, atom_types, wyck_types, Kx, Kl, transformer, 
 
         X, Y, Z = XYZ[:, 0], XYZ[:, 1], XYZ[:,2]
 
-        fc_mask = jnp.logical_and((W>0)[:, None], fc_mask_table[G-1, W]) # (n_max, 3)
+        fc_mask = jnp.logical_and((W>0)[:, None], sym_group.fc_mask_table[G-1, W]) # (n_max, 3)
         logp_x = compute_logp_x(sym_group.distribution('x'), h_x, X, fc_mask[:, 0])
         logp_y = compute_logp_x(sym_group.distribution('y'), h_y, Y, fc_mask[:, 1])
         logp_z = compute_logp_x(sym_group.distribution('z'), h_z, Z, fc_mask[:, 2])
@@ -115,7 +111,7 @@ if __name__=='__main__':
 
     key = jax.random.PRNGKey(42)
 
-    params, transformer = make_transformer(key, Nf, Kx, Kl, n_max, 128, 4, 4, 8, 16, 16, atom_types, wyck_types, dropout_rate) 
+    params, transformer = make_transformer(SpaceGroup(), key, Nf, Kx, Kl, n_max, 128, 4, 4, 8, 16, 16, atom_types, wyck_types, dropout_rate) 
  
     loss_fn, _ = make_loss_fn(SpaceGroup(), n_max, atom_types, wyck_types, Kx, Kl, transformer)
     

@@ -14,9 +14,9 @@ from crystalformer.src.train import train
 from crystalformer.src.sample import sample_crystal, make_update_lattice
 from crystalformer.src.loss import make_loss_fn
 import crystalformer.src.checkpoint as checkpoint
-from crystalformer.src.wyckoff import mult_table
+# from crystalformer.src.wyckoff import mult_table
 from crystalformer.src.mcmc import make_mcmc_step
-from crystalformer.src.sym_group import SymGroup, SpaceGroup, LayerGroup
+from crystalformer.src.sym_group import *
 
 import argparse
 
@@ -173,7 +173,7 @@ if __name__ == '__main__':
             w_mask = None
 
     ################### Model #############################
-    params, transformer = make_transformer(key, args.Nf, args.Kx, args.Kl, args.n_max, 
+    params, transformer = make_transformer(sym_group, key, args.Nf, args.Kx, args.Kl, args.n_max, 
                                         args.h0_size, 
                                         args.transformer_layers, args.num_heads, 
                                         args.key_size, args.model_size, args.embed_size, 

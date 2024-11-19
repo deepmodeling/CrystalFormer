@@ -9,7 +9,6 @@ from functools import partial
 import multiprocessing
 import os
 
-from crystalformer.src.wyckoff import mult_table
 from crystalformer.src.elements import element_list
 
 @jax.vmap
@@ -209,7 +208,8 @@ if __name__=='__main__':
     wyck_types = 28
     n_max = 24
 
-    import numpy as np 
+    import numpy as np
+    from crystalformer.src.sym_group import *
     np.set_printoptions(threshold=np.inf)
     
     #csv_file = '../data/mini.csv'
@@ -231,6 +231,6 @@ if __name__=='__main__':
 
     @jax.vmap
     def lookup(G, W):
-        return mult_table[G-1, W] # (n_max, )
+        return SpaceGroup().mult_table[G-1, W] # (n_max, )
     M = lookup(G, W) # (batchsize, n_max)
     print ('N:\n', M.sum(axis=-1))

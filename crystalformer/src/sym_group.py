@@ -7,6 +7,7 @@ from crystalformer.src.von_mises import von_mises_logpdf, sample_von_mises
 from crystalformer.src.von_mises import gaussian_logpdf, sample_gaussian
 from crystalformer.src.lattice import make_lattice_mask_spacegroup, make_lattice_mask_layergroup
 from crystalformer.src.lattice import symmetrize_lattice_spacegroup, symmetrize_lattice_layergroup
+from crystalformer.src.wyckoff import symops, mult_table, wmax_table, dof0_table, fc_mask_table
 
 class SymGroup(ABC):
 
@@ -33,7 +34,11 @@ class SymGroup(ABC):
 class SpaceGroup(SymGroup):
     # sample of x,y,z should all be von mises
     def __init__(self):
-        pass
+        self.symops = symops
+        self.mult_table = mult_table
+        self.wmax_table = wmax_table
+        self.dof0_table = dof0_table
+        self.fc_mask_table = fc_mask_table
     
     def axis_name_assert(self, axis):
         assert axis in {'x', 'y', 'z'}, "input error, axis needs to be 'x', 'y', or 'z'."
@@ -59,7 +64,11 @@ class SpaceGroup(SymGroup):
 class LayerGroup(SymGroup):
     # sample of x,y should be von mises; sample of z should be gaussian
     def __init__(self):
-        pass
+        symops = ...
+        mult_table = ...
+        wmax_table = ...
+        dof0_table = ...
+        fc_mask_table = ...
 
     def axis_name_assert(self, axis):
         assert axis in {'x', 'y', 'z'}, "input error, axis needs to be 'x', 'y', or 'z'."
@@ -103,6 +112,7 @@ if __name__ == '__main__':
     a = eval(group_str)
     print(type(a))
     print(type(a) in {type(SpaceGroup()), type(LayerGroup())})
+    print(a.mult_table)
     # mask = a.make_lattice_mask()()
     # print(mask)
     # a = LayerGroup()
