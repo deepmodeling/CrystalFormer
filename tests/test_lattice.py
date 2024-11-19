@@ -1,6 +1,7 @@
 from config import *
 
-from crystalformer.src.lattice import symmetrize_lattice, make_lattice_mask
+# from crystalformer.src.lattice import symmetrize_lattice, make_lattice_mask
+from crystalformer.src.sym_group import *
 
 def test_symmetrize_lattice():
     key = jax.random.PRNGKey(42)
@@ -9,7 +10,7 @@ def test_symmetrize_lattice():
     L = jax.random.uniform(key, (6,))
     L = L.reshape([1, 6]).repeat(230, axis=0)
 
-    lattice = jax.jit(jax.vmap(symmetrize_lattice))(G, L)
+    lattice = jax.jit(jax.vmap(SpaceGroup().symmetrize_lattice()))(G, L)
     print (lattice)    
     
     a, b, c, alpha, beta, gamma = lattice[99-1] 
@@ -32,7 +33,7 @@ def test_make_mask():
         mask = jnp.where(spacegroup <= 194, mask, jnp.array([1, 0, 0, 0, 0, 0]))
         return mask
     
-    mask = make_lattice_mask()
+    mask = SpaceGroup().make_lattice_mask()()
 
     for g in range(1, 231):
         assert jnp.allclose(mask[g-1] , make_spacegroup_mask(g))

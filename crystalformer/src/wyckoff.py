@@ -33,7 +33,7 @@ def from_xyz_str(xyz_str: str):
     return np.concatenate( [rot_matrix, trans[:, None]], axis=1) # (3, 4)
 
 
-df = pd.read_csv(os.path.join(os.path.dirname(__file__), '../data/layer.csv'))
+df = pd.read_csv(os.path.join(os.path.dirname(__file__), '../data/wyckoff_list.csv'))
 df['Wyckoff Positions'] = df['Wyckoff Positions'].apply(eval)  # convert string to list
 wyckoff_positions = df['Wyckoff Positions'].tolist()
 

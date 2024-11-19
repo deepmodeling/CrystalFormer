@@ -82,7 +82,13 @@ if __name__ == '__main__':
     group.add_argument('--nsweeps', type=int, default=10, help='number of sweeps')
     group.add_argument('--mc_width', type=float, default=0.1, help='width of MCMC step')
 
+    group = parser.add_argument_group("Symmetry group type")
+    group.add_argument('--sym_group', type=str, default="SpaceGroup()", help='type of symmetry group, can be "SpaceGroup()" or "LayerGroup()".')
+
     args = parser.parse_args()
+
+    assert args.sym_group in {"SpaceGroup()", "LayerGroup()"}, 'input error, sym_group can only be "SpaceGroup()" or "LayerGroup()".'
+    sym_group = eval(args.sym_group)
 
     key = jax.random.PRNGKey(42)
 
@@ -179,7 +185,7 @@ if __name__ == '__main__':
 
     ################### Train #############################
 
-    loss_fn, logp_fn = make_loss_fn(LayerGroup(), args.n_max, args.atom_types, args.wyck_types, args.Kx, args.Kl, transformer, args.lamb_a, args.lamb_w, args.lamb_l)
+    loss_fn, logp_fn = make_loss_fn(sym_group, args.n_max, args.atom_types, args.wyck_types, args.Kx, args.Kl, transformer, args.lamb_a, args.lamb_w, args.lamb_l)
 
     print("\n========== Prepare logs ==========")
     if args.optimizer != "none" or args.restore_path is None:
@@ -280,7 +286,7 @@ if __name__ == '__main__':
             end_idx = min(start_idx + args.batchsize, args.num_samples)
             n_sample = end_idx - start_idx
             key, subkey = jax.random.split(key)
-            XYZ, A, W, M, L = sample_crystal(LayerGroup(), subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, args.spacegroup, w_mask, atom_mask, args.top_p, args.temperature, T1, constraints)
+            XYZ, A, W, M, L = sample_crystal(sym_group, subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, args.spacegroup, w_mask, atom_mask, args.top_p, args.temperature, T1, constraints)
 
             G = args.spacegroup * jnp.ones((n_sample), dtype=int)
             if args.mcmc:
