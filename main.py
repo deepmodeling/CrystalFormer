@@ -269,7 +269,7 @@ if __name__ == '__main__':
         mc_steps = args.nsweeps * args.n_max
         print("mc_steps", mc_steps)
         mcmc = make_mcmc_step(params, n_max=args.n_max, atom_types=args.atom_types, sym_group=LayerGroup(), atom_mask=atom_mask, constraints=constraints)
-        update_lattice = make_update_lattice(transformer, params, args.atom_types, args.Kl, args.top_p, args.temperature)
+        update_lattice = make_update_lattice(sym_group, transformer, params, args.atom_types, args.Kl, args.top_p, args.temperature)
 
         num_batches = math.ceil(args.num_samples / args.batchsize)
         name, extension = args.output_filename.rsplit('.', 1)
