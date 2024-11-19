@@ -5,8 +5,8 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-from crystalformer.src.sym_group import SymGroup, SpaceGroup
-from crystalformer.src.lattice import symmetrize_lattice
+from crystalformer.src.sym_group import *
+# from crystalformer.src.lattice import symmetrize_lattice
 from crystalformer.src.wyckoff import mult_table, symops
 
 def project_xyz(g, w, x, idx):
@@ -172,7 +172,7 @@ def sample_crystal(sym_group, key, transformer, params, n_max, batchsize, atom_t
     L = jnp.concatenate([length, angle], axis=-1)
 
     #impose space group constraint to lattice params
-    L = jax.vmap(symmetrize_lattice, (None, 0))(g, L)  
+    L = jax.vmap(sym_group.symmetrize_lattice(), (None, 0))(g, L)  
 
     XYZ = jnp.concatenate([X[..., None], 
                            Y[..., None], 

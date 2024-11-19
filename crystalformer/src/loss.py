@@ -7,9 +7,9 @@ import jax.numpy as jnp
 from functools import partial
 
 # from crystalformer.src.von_mises import von_mises_logpdf
-from crystalformer.src.lattice import make_lattice_mask
+# from crystalformer.src.lattice import make_lattice_mask
 from crystalformer.src.wyckoff import mult_table, fc_mask_table
-from crystalformer.src.sym_group import SymGroup, SpaceGroup
+from crystalformer.src.sym_group import *
 
 
 def make_loss_fn(sym_group, n_max, atom_types, wyck_types, Kx, Kl, transformer, lamb_a=1.0, lamb_w=1.0, lamb_l=1.0):
@@ -31,7 +31,7 @@ def make_loss_fn(sym_group, n_max, atom_types, wyck_types, Kx, Kl, transformer, 
     """
     
     coord_types = 3*Kx
-    lattice_mask = make_lattice_mask()
+    lattice_mask = sym_group.make_lattice_mask()()
 
     def compute_logp_x(distribution, h_x, X, fc_mask_x):
         x_logit, loc, kappa = jnp.split(h_x, [Kx, 2*Kx], axis=-1)
