@@ -183,7 +183,7 @@ def sample_crystal(sym_group, key, transformer, params, n_max, batchsize, atom_t
     return XYZ, A, W, M, L
 
 
-def make_update_lattice(transformer, params, atom_types, Kl, top_p, temperature):
+def make_update_lattice(sym_group, transformer, params, atom_types, Kl, top_p, temperature):
 
     @jax.jit
     def update_lattice(key, G, XYZ, A, W):
@@ -217,7 +217,7 @@ def make_update_lattice(transformer, params, atom_types, Kl, top_p, temperature)
         L = jnp.concatenate([length, angle], axis=-1)
 
         #impose space group constraint to lattice params
-        L = jax.vmap(symmetrize_lattice, (0, 0))(G, L)  
+        L = jax.vmap(sym_group.symmetrize_lattice(), (0, 0))(G, L)  
 
         return L
 
