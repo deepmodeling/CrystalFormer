@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 import jax.numpy as jnp
 from crystalformer.src.von_mises import von_mises_logpdf, sample_von_mises
 from crystalformer.src.von_mises import gaussian_logpdf, sample_gaussian
+from crystalformer.src.lattice import make_lattice_mask_spacegroup, make_lattice_mask_layergroup
+from crystalformer.src.lattice import symmetrize_lattice_spacegroup, symmetrize_lattice_layergroup
 
 class SymGroup(ABC):
 
@@ -18,6 +20,14 @@ class SymGroup(ABC):
 
     @abstractmethod
     def sample(self, axis):
+        pass
+
+    @abstractmethod
+    def make_lattice_mask(self):
+        pass
+
+    @abstractmethod
+    def symmetrize_lattice(self):
         pass
 
 class SpaceGroup(SymGroup):
@@ -39,6 +49,12 @@ class SpaceGroup(SymGroup):
     
     def sample_all_dim(self):
         return sample_von_mises
+    
+    def make_lattice_mask(self):
+        return make_lattice_mask_spacegroup
+    
+    def symmetrize_lattice(self):
+        return symmetrize_lattice_spacegroup
 
 class LayerGroup(SymGroup):
     # sample of x,y should be von mises; sample of z should be gaussian
@@ -71,20 +87,24 @@ class LayerGroup(SymGroup):
             sample_z = sample_gaussian(key, loc, concentration, (*shape[0:2], 1))
             return jnp.concatenate((sample_xy, sample_z), axis=2)
         return sample_xyz
+    
+    def make_lattice_mask(self):
+        return make_lattice_mask_layergroup
+    
+    def symmetrize_lattice(self):
+        return symmetrize_lattice_layergroup
 
 
 
 
 if __name__ == '__main__':
     from jax import random
-    import argparse
-
-    parser = argparse.ArgumentParser(description='')
-
-    group = parser.add_argument_group()
-    group.add_argument('--sym', type=SymGroup)
-    arg = parser.parse_args()
-    print(type(arg.sym))
+    group_str = "SpaceGroup()"
+    a = eval(group_str)
+    print(type(a))
+    print(type(a) in {type(SpaceGroup()), type(LayerGroup())})
+    # mask = a.make_lattice_mask()()
+    # print(mask)
     # a = LayerGroup()
     # print(type(a))
     # a.distribution('x')
