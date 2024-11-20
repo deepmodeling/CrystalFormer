@@ -279,9 +279,8 @@ def test_wyckoff():
     mult_table = jnp.array(mult_table)
     wmax_table = jnp.array(wmax_table)
     
-    import crystalformer.src.wyckoff as wyckoff
-    assert jnp.allclose(mult_table, wyckoff.mult_table)
-    assert jnp.allclose(wmax_table, wyckoff.wmax_table)
+    assert jnp.allclose(mult_table, sym_group.mult_table)
+    assert jnp.allclose(wmax_table, sym_group.wmax_table)
 
 def test_symmetrize_atoms():
     from crystalformer.src.wyckoff import symmetrize_atoms

@@ -7,7 +7,7 @@ from functools import partial
 
 from crystalformer.src.sym_group import *
 # from crystalformer.src.lattice import symmetrize_lattice
-from crystalformer.src.wyckoff import mult_table
+# from crystalformer.src.wyckoff import mult_table
 
 def project_xyz(sym_group, g, w, x, idx):
     '''

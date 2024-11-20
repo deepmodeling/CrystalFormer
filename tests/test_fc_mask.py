@@ -3,6 +3,10 @@ import pandas as pd
 import os
 import numpy as np
 import jax.numpy as jnp
+from crystalformer.src.sym_group import *
+
+sym_group = SpaceGroup()
+
 
 df = pd.read_csv(os.path.join(datadir, 'wyckoff_list.csv'))
 df['Wyckoff Positions'] = df['Wyckoff Positions'].apply(eval)  # convert string to list
@@ -34,14 +38,14 @@ fc_mask_table = jnp.array(fc_mask_table) # 1 in the fc_mask_table select those a
 from config import *
 
 def test_fc_mask():
-    from crystalformer.src.wyckoff import symops, wmax_table
-    from crystalformer.src.wyckoff import fc_mask_table as fc_mask_table_test
+    # from crystalformer.src.wyckoff import symops, wmax_table
+    # from crystalformer.src.wyckoff import fc_mask_table as fc_mask_table_test
 
     for g in range(1, 231):
-        for w in range(1, wmax_table[g]+1):
-            op = symops[g-1, w, 0] # 0 since we conly consider the first wyckoff point in the equivalent class when building fc_mask_table
+        for w in range(1, sym_group.wmax_table[g]+1):
+            op = sym_group.symops[g-1, w, 0] # 0 since we conly consider the first wyckoff point in the equivalent class when building fc_mask_table
             fc_mask = (op[:3, :3].sum(axis=1)!=0)
             assert jnp.allclose(fc_mask, fc_mask_table[g-1, w])
-            assert jnp.allclose(fc_mask, fc_mask_table_test[g-1, w])
+            assert jnp.allclose(fc_mask, sym_group.fc_mask_table[g-1, w])
 
 test_fc_mask() 
