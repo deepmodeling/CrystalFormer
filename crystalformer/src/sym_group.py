@@ -104,7 +104,7 @@ if __name__ == '__main__':
     a = eval(group_str)
     print(type(a))
     print(type(a) in {type(SpaceGroup()), type(LayerGroup())})
-    print(a.mult_table.shape)
+    print(a.symops)
     # mask = a.make_lattice_mask()()
     # print(mask)
     # a = LayerGroup()

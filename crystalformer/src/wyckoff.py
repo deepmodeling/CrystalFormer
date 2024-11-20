@@ -4,7 +4,6 @@ import numpy as np
 import re
 import jax
 import jax.numpy as jnp
-from crystalformer.src.sym_group import *
 
 def from_xyz_str(xyz_str: str):
     """
@@ -154,9 +153,11 @@ def symmetrize_atoms(sym_group, g, w, x):
     return xs
 
 if __name__=='__main__':
+    from crystalformer.src.sym_group import *
+
     sym_group = SpaceGroup()
     print (sym_group.symops.shape)
-    print (sym_group.symops.size*symops.dtype.itemsize//(1024*1024))
+    print (sym_group.symops.size*sym_group.symops.dtype.itemsize//(1024*1024))
 
     # import numpy as np 
     # np.set_printoptions(threshold=np.inf)
