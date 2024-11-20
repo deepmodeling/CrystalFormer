@@ -4,6 +4,7 @@ import numpy as np
 import re
 import jax
 import jax.numpy as jnp
+from crystalformer.src.sym_group import *
 
 def from_xyz_str(xyz_str: str):
     """
@@ -49,69 +50,72 @@ def lcm_multiplicity(wyckoff_list):
 
     return lcm(*mult)
 
-def build_g_code():
-    #use general wyckoff position as the code for space groups
-    xyz_table = []
-    g_table = []
+# def build_g_code():
+#     #use general wyckoff position as the code for space groups
+#     xyz_table = []
+#     g_table = []
+#     for g in range(g_num):
+#         wp0 = wyckoff_positions[g][0]
+#         g_table.append([])
+#         for xyz in wp0:
+#             if xyz not in xyz_table: 
+#                 xyz_table.append(xyz)
+#             g_table[-1].append(xyz_table.index(xyz))
+#         assert len(g_table[-1]) == len(set(g_table[-1]))
+
+#     g_code = []
+#     for g in range(g_num):
+#         g_code.append( [1 if i in g_table[g] else 0 for i in range(len(xyz_table))] )
+#     del xyz_table
+#     del g_table
+#     g_code = jnp.array(g_code)
+#     return g_code
+
+def get_tables(file_path):
+    df = pd.read_csv(os.path.join(os.path.dirname(__file__), file_path))
+    df['Wyckoff Positions'] = df['Wyckoff Positions'].apply(eval)  # convert string to list
+    wyckoff_positions = df['Wyckoff Positions'].tolist()
+
+    g_num = group_num(wyckoff_positions)
+    max_wl = max_wyckoff_letter(wyckoff_positions)
+    lcm_w = lcm_multiplicity(wyckoff_positions)
+    # ll-edit
+
+    symops = np.zeros((g_num, max_wl+1, lcm_w, 3, 4)) # 48 is the least common multiple for all possible mult
+    mult_table = np.zeros((g_num, max_wl+1), dtype=int) # mult_table[g-1, w] = multiplicity , 19 because we had pad 0 
+    wmax_table = np.zeros((g_num,), dtype=int)    # wmax_table[g-1] = number of possible wyckoff letters for g 
+    dof0_table = np.ones((g_num, max_wl+1), dtype=bool)  # dof0_table[g-1, w] = True for those wyckoff points with dof = 0 (no continuous dof)
+    fc_mask_table = np.zeros((g_num, max_wl+1, 3), dtype=bool) # fc_mask_table[g-1, w] = True for continuous fc 
+
     for g in range(g_num):
-        wp0 = wyckoff_positions[g][0]
-        g_table.append([])
-        for xyz in wp0:
-            if xyz not in xyz_table: 
-                xyz_table.append(xyz)
-            g_table[-1].append(xyz_table.index(xyz))
-        assert len(g_table[-1]) == len(set(g_table[-1]))
+        wyckoffs = []
+        for x in wyckoff_positions[g]:
+            wyckoffs.append([])
+            for y in x:
+                wyckoffs[-1].append(from_xyz_str(y))
+        wyckoffs = wyckoffs[::-1] # a-z,A
 
-    g_code = []
-    for g in range(g_num):
-        g_code.append( [1 if i in g_table[g] else 0 for i in range(len(xyz_table))] )
-    del xyz_table
-    del g_table
-    g_code = jnp.array(g_code)
-    return g_code
+        mult = [len(w) for w in wyckoffs]
+        mult_table[g, 1:len(mult)+1] = mult
+        wmax_table[g] = len(mult)
 
-df = pd.read_csv(os.path.join(os.path.dirname(__file__), '../data/wyckoff_list.csv'))
-df['Wyckoff Positions'] = df['Wyckoff Positions'].apply(eval)  # convert string to list
-wyckoff_positions = df['Wyckoff Positions'].tolist()
+        # print (g+1, [len(w) for w in wyckoffs])
+        for w, wyckoff in enumerate(wyckoffs):
+            wyckoff = np.array(wyckoff)
+            repeats = symops.shape[2] // wyckoff.shape[0]
+            symops[g, w+1, :, :, :] = np.tile(wyckoff, (repeats, 1, 1))
+            dof0_table[g, w+1] = np.linalg.matrix_rank(wyckoff[0, :3, :3]) == 0
+            fc_mask_table[g, w+1] = jnp.abs(wyckoff[0, :3, :3]).sum(axis=1)!=0 
 
-g_num = group_num(wyckoff_positions)
-max_wl = max_wyckoff_letter(wyckoff_positions)
-lcm_w = lcm_multiplicity(wyckoff_positions)
-# ll-edit
+    symops = jnp.array(symops)
+    mult_table = jnp.array(mult_table)
+    wmax_table = jnp.array(wmax_table)
+    dof0_table = jnp.array(dof0_table)
+    fc_mask_table = jnp.array(fc_mask_table)
 
-symops = np.zeros((g_num, max_wl+1, lcm_w, 3, 4)) # 48 is the least common multiple for all possible mult
-mult_table = np.zeros((g_num, max_wl+1), dtype=int) # mult_table[g-1, w] = multiplicity , 19 because we had pad 0 
-wmax_table = np.zeros((g_num,), dtype=int)    # wmax_table[g-1] = number of possible wyckoff letters for g 
-dof0_table = np.ones((g_num, max_wl+1), dtype=bool)  # dof0_table[g-1, w] = True for those wyckoff points with dof = 0 (no continuous dof)
-fc_mask_table = np.zeros((g_num, max_wl+1, 3), dtype=bool) # fc_mask_table[g-1, w] = True for continuous fc 
+    return symops, mult_table, wmax_table, dof0_table, fc_mask_table
 
-for g in range(g_num):
-    wyckoffs = []
-    for x in wyckoff_positions[g]:
-        wyckoffs.append([])
-        for y in x:
-            wyckoffs[-1].append(from_xyz_str(y))
-    wyckoffs = wyckoffs[::-1] # a-z,A
-
-    mult = [len(w) for w in wyckoffs]
-    mult_table[g, 1:len(mult)+1] = mult
-    wmax_table[g] = len(mult)
-
-    # print (g+1, [len(w) for w in wyckoffs])
-    for w, wyckoff in enumerate(wyckoffs):
-        wyckoff = np.array(wyckoff)
-        repeats = symops.shape[2] // wyckoff.shape[0]
-        symops[g, w+1, :, :, :] = np.tile(wyckoff, (repeats, 1, 1))
-        dof0_table[g, w+1] = np.linalg.matrix_rank(wyckoff[0, :3, :3]) == 0
-        fc_mask_table[g, w+1] = jnp.abs(wyckoff[0, :3, :3]).sum(axis=1)!=0 
-
-symops = jnp.array(symops)
-mult_table = jnp.array(mult_table)
-wmax_table = jnp.array(wmax_table)
-dof0_table = jnp.array(dof0_table)
-fc_mask_table = jnp.array(fc_mask_table)
-
-def symmetrize_atoms(g, w, x):
+def symmetrize_atoms(sym_group, g, w, x):
     '''
     symmetrize atoms via, apply all sg symmetry op, finding the generator, and lastly apply symops 
     we need to do that because the sampled atom might not be at the first WP
@@ -124,9 +128,9 @@ def symmetrize_atoms(g, w, x):
     '''
 
     # (1) apply all space group symmetry op to the x 
-    w_max = wmax_table[g-1].item()
-    m_max = mult_table[g-1, w_max].item()
-    ops = symops[g-1, w_max, :m_max] # (m_max, 3, 4)
+    w_max = sym_group.wmax_table[g-1].item()
+    m_max = sym_group.mult_table[g-1, w_max].item()
+    ops = sym_group.symops[g-1, w_max, :m_max] # (m_max, 3, 4)
     affine_point = jnp.array([*x, 1]) # (4, )
     coords = ops@affine_point # (m_max, 3) 
     coords -= jnp.floor(coords)
@@ -135,23 +139,24 @@ def symmetrize_atoms(g, w, x):
     # here we solve it in a jit friendly way by looking for the minimal distance solution for the lhs and rhs  
     #https://github.com/qzhu2017/PyXtal/blob/82e7d0eac1965c2713179eeda26a60cace06afc8/pyxtal/wyckoff_site.py#L115
     def dist_to_op0x(coord):
-        diff = jnp.dot(symops[g-1, w, 0], jnp.array([*coord, 1])) - coord
+        diff = jnp.dot(sym_group.symops[g-1, w, 0], jnp.array([*coord, 1])) - coord
         diff -= jnp.rint(diff)
         return jnp.sum(diff**2) 
     loc = jnp.argmin(jax.vmap(dist_to_op0x)(coords))
     x = coords[loc].reshape(3,)
 
     # (3) lastly, apply the given symmetry op to x
-    m = mult_table[g-1, w] 
-    ops = symops[g-1, w, :m]   # (m, 3, 4)
+    m = sym_group.mult_table[g-1, w] 
+    ops = sym_group.symops[g-1, w, :m]   # (m, 3, 4)
     affine_point = jnp.array([*x, 1]) # (4, )
     xs = ops@affine_point # (m, 3)
     xs -= jnp.floor(xs) # wrap back to 0-1 
     return xs
 
 if __name__=='__main__':
-    print (symops.shape)
-    print (symops.size*symops.dtype.itemsize//(1024*1024))
+    sym_group = SpaceGroup()
+    print (sym_group.symops.shape)
+    print (sym_group.symops.size*symops.dtype.itemsize//(1024*1024))
 
     # import numpy as np 
     # np.set_printoptions(threshold=np.inf)

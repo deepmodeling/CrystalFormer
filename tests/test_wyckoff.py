@@ -233,7 +233,7 @@ wyckoff_list = [[1],                          # 1
 from config import *
 from crystalformer.src.sym_group import *
 
-mult_table = SpaceGroup().mult_table
+sym_group = SpaceGroup()
 
 def test_mult_table():
 
@@ -242,7 +242,7 @@ def test_mult_table():
         return arr[nonzero_indices]
 
     def match(g):
-        jnp.allclose( nonzero_part(mult_table[g-1]) , jnp.array(wyckoff_list[g-1]))
+        jnp.allclose( nonzero_part(sym_group.mult_table[g-1]) , jnp.array(wyckoff_list[g-1]))
 
     match(25)
     match(47)
@@ -284,7 +284,7 @@ def test_wyckoff():
     assert jnp.allclose(wmax_table, wyckoff.wmax_table)
 
 def test_symmetrize_atoms():
-    from crystalformer.src.wyckoff import symmetrize_atoms, mult_table, wmax_table, symops
+    from crystalformer.src.wyckoff import symmetrize_atoms
     from pymatgen.symmetry.groups import SpaceGroup
 
     #https://github.com/materialsproject/pymatgen/blob/1e347c42c01a4e926e15b910cca8964c1a0cc826/pymatgen/symmetry/groups.py#L547
@@ -321,9 +321,9 @@ def test_symmetrize_atoms():
            xs: (m, 3)  symmetrized atom positions
         '''
         # (1) apply all space group symmetry ops to x 
-        w_max = wmax_table[g-1].item()
-        m_max = mult_table[g-1, w_max].item()
-        ops = symops[g-1, w_max, :m_max] # (m_max, 3, 4)
+        w_max = sym_group.wmax_table[g-1].item()
+        m_max = sym_group.mult_table[g-1, w_max].item()
+        ops = sym_group.symops[g-1, w_max, :m_max] # (m_max, 3, 4)
         affine_point = jnp.array([*x, 1]) # (4, )
         coords = ops@affine_point # (m_max, 3) 
         
@@ -334,13 +334,13 @@ def test_symmetrize_atoms():
             if not in_array_list(orbit, pp):
                 orbit.append(pp)
         orbit -= np.floor(orbit)   # wrap back to 0-1 
-        assert (orbit.shape[0] == mult_table[g-1, w]) # double check that the orbit has the right length
+        assert (orbit.shape[0] == sym_group.mult_table[g-1, w]) # double check that the orbit has the right length
         return orbit
 
     def symmetrize_atoms_pmg(g, w, x):
         sg = SpaceGroup.from_int_number(g)
         xs = sg.get_orbit(x)
-        m = mult_table[g-1, w]  
+        m = sym_group.mult_table[g-1, w]  
         assert (len(xs) == m) # double check that the orbit has the right length
         return np.array(xs)
 
@@ -354,7 +354,7 @@ def test_symmetrize_atoms():
     g = 166 
     w = jnp.array(3)
     x = jnp.array([0., 0., 0.5619])
-    xs = symmetrize_atoms(g, w, x)
+    xs = symmetrize_atoms(sym_group, g, w, x)
     print ('xs:\n', xs)
     assert allclose_up_to_permutation(xs, symmetrize_atoms_pmg(g, w, x))
     assert allclose_up_to_permutation(xs, symmetrize_atoms_deduplication(g, w, x))
@@ -362,7 +362,7 @@ def test_symmetrize_atoms():
     g = 225
     w = jnp.array(5)
     x = jnp.array([0., 0., 0.7334])
-    xs = symmetrize_atoms(g, w, x)
+    xs = symmetrize_atoms(sym_group, g, w, x)
     print ('xs:\n', xs)
     assert allclose_up_to_permutation(xs, symmetrize_atoms_pmg(g, w, x))
     assert allclose_up_to_permutation(xs, symmetrize_atoms_deduplication(g, w, x))
@@ -370,7 +370,7 @@ def test_symmetrize_atoms():
     g = 225
     w = jnp.array(8)
     x = jnp.array([0.0, 0.23, 0.23])
-    xs = symmetrize_atoms(g, w, x)
+    xs = symmetrize_atoms(sym_group, g, w, x)
     print ('xs:\n', xs)
     assert allclose_up_to_permutation(xs, symmetrize_atoms_pmg(g, w, x))
     assert allclose_up_to_permutation(xs, symmetrize_atoms_deduplication(g, w, x))

@@ -7,7 +7,7 @@ from crystalformer.src.von_mises import von_mises_logpdf, sample_von_mises
 from crystalformer.src.von_mises import gaussian_logpdf, sample_gaussian
 from crystalformer.src.lattice import make_lattice_mask_spacegroup, make_lattice_mask_layergroup
 from crystalformer.src.lattice import symmetrize_lattice_spacegroup, symmetrize_lattice_layergroup
-from crystalformer.src.wyckoff import symops, mult_table, wmax_table, dof0_table, fc_mask_table
+from crystalformer.src.wyckoff import get_tables
 
 class SymGroup(ABC):
 
@@ -34,12 +34,7 @@ class SymGroup(ABC):
 class SpaceGroup(SymGroup):
     # sample of x,y,z should all be von mises
     def __init__(self):
-        self.file_path = '../data/wyckoff_list.csv'
-        self.symops = symops
-        self.mult_table = mult_table
-        self.wmax_table = wmax_table
-        self.dof0_table = dof0_table
-        self.fc_mask_table = fc_mask_table
+        self.symops, self.mult_table, self.wmax_table, self.dof0_table, self.fc_mask_table = get_tables('../data/wyckoff_list.csv')
     
     def axis_name_assert(self, axis):
         assert axis in {'x', 'y', 'z'}, "input error, axis needs to be 'x', 'y', or 'z'."
@@ -65,11 +60,7 @@ class SpaceGroup(SymGroup):
 class LayerGroup(SymGroup):
     # sample of x,y should be von mises; sample of z should be gaussian
     def __init__(self):
-        symops = ...
-        mult_table = ...
-        wmax_table = ...
-        dof0_table = ...
-        fc_mask_table = ...
+        self.symops, self.mult_table, self.wmax_table, self.dof0_table, self.fc_mask_table = get_tables('../data/layer.csv')
 
     def axis_name_assert(self, axis):
         assert axis in {'x', 'y', 'z'}, "input error, axis needs to be 'x', 'y', or 'z'."
@@ -109,11 +100,11 @@ class LayerGroup(SymGroup):
 
 if __name__ == '__main__':
     from jax import random
-    group_str = "SpaceGroup()"
+    group_str = "LayerGroup()"
     a = eval(group_str)
     print(type(a))
     print(type(a) in {type(SpaceGroup()), type(LayerGroup())})
-    print(a.mult_table)
+    print(a.mult_table.shape)
     # mask = a.make_lattice_mask()()
     # print(mask)
     # a = LayerGroup()
