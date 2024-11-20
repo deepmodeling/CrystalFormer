@@ -32,11 +32,6 @@ def from_xyz_str(xyz_str: str):
             trans[i] = num * factor
     return np.concatenate( [rot_matrix, trans[:, None]], axis=1) # (3, 4)
 
-
-df = pd.read_csv(os.path.join(os.path.dirname(__file__), '../data/wyckoff_list.csv'))
-df['Wyckoff Positions'] = df['Wyckoff Positions'].apply(eval)  # convert string to list
-wyckoff_positions = df['Wyckoff Positions'].tolist()
-
 # ll-edit
 
 def group_num(wyckoff_list):
@@ -53,17 +48,6 @@ def lcm_multiplicity(wyckoff_list):
             mult.append(len(w))
 
     return lcm(*mult)
-
-g_num = group_num(wyckoff_positions)
-max_wl = max_wyckoff_letter(wyckoff_positions)
-lcm_w = lcm_multiplicity(wyckoff_positions)
-# ll-edit
-
-symops = np.zeros((g_num, max_wl+1, lcm_w, 3, 4)) # 48 is the least common multiple for all possible mult
-mult_table = np.zeros((g_num, max_wl+1), dtype=int) # mult_table[g-1, w] = multiplicity , 19 because we had pad 0 
-wmax_table = np.zeros((g_num,), dtype=int)    # wmax_table[g-1] = number of possible wyckoff letters for g 
-dof0_table = np.ones((g_num, max_wl+1), dtype=bool)  # dof0_table[g-1, w] = True for those wyckoff points with dof = 0 (no continuous dof)
-fc_mask_table = np.zeros((g_num, max_wl+1, 3), dtype=bool) # fc_mask_table[g-1, w] = True for continuous fc 
 
 def build_g_code():
     #use general wyckoff position as the code for space groups
@@ -85,6 +69,21 @@ def build_g_code():
     del g_table
     g_code = jnp.array(g_code)
     return g_code
+
+df = pd.read_csv(os.path.join(os.path.dirname(__file__), '../data/wyckoff_list.csv'))
+df['Wyckoff Positions'] = df['Wyckoff Positions'].apply(eval)  # convert string to list
+wyckoff_positions = df['Wyckoff Positions'].tolist()
+
+g_num = group_num(wyckoff_positions)
+max_wl = max_wyckoff_letter(wyckoff_positions)
+lcm_w = lcm_multiplicity(wyckoff_positions)
+# ll-edit
+
+symops = np.zeros((g_num, max_wl+1, lcm_w, 3, 4)) # 48 is the least common multiple for all possible mult
+mult_table = np.zeros((g_num, max_wl+1), dtype=int) # mult_table[g-1, w] = multiplicity , 19 because we had pad 0 
+wmax_table = np.zeros((g_num,), dtype=int)    # wmax_table[g-1] = number of possible wyckoff letters for g 
+dof0_table = np.ones((g_num, max_wl+1), dtype=bool)  # dof0_table[g-1, w] = True for those wyckoff points with dof = 0 (no continuous dof)
+fc_mask_table = np.zeros((g_num, max_wl+1, 3), dtype=bool) # fc_mask_table[g-1, w] = True for continuous fc 
 
 for g in range(g_num):
     wyckoffs = []

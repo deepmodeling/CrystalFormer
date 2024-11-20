@@ -231,8 +231,11 @@ wyckoff_list = [[1],                          # 1
                 ]
 
 from config import *
+from crystalformer.src.sym_group import *
+
+mult_table = SpaceGroup().mult_table
+
 def test_mult_table():
-    from crystalformer.src.wyckoff import mult_table
 
     def nonzero_part(arr):
         nonzero_indices = jnp.nonzero(arr)

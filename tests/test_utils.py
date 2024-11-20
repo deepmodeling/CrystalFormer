@@ -1,7 +1,9 @@
 from config import *
 
 from crystalformer.src.utils import GLXYZAW_from_file
-from crystalformer.src.wyckoff import mult_table
+from crystalformer.src.sym_group import *
+
+mult_table = SpaceGroup().mult_table
 
 def calc_n(G, W):
     @jax.vmap

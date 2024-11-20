@@ -1,8 +1,10 @@
 from config import *
-from crystalformer.src.wyckoff import symops
+from crystalformer.src.sym_group import *
+symops = SpaceGroup().symops
+wmax_table = SpaceGroup().wmax_table
+mult_table = SpaceGroup().mult_table
 
 def test_symops():
-    from crystalformer.src.wyckoff import wmax_table, mult_table
     def project_x(g, w, x, idx):
         '''
         One wants to project randomly sampled fc to the nearest Wyckoff point

@@ -34,6 +34,7 @@ class SymGroup(ABC):
 class SpaceGroup(SymGroup):
     # sample of x,y,z should all be von mises
     def __init__(self):
+        self.file_path = '../data/wyckoff_list.csv'
         self.symops = symops
         self.mult_table = mult_table
         self.wmax_table = wmax_table

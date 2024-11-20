@@ -1,8 +1,8 @@
 from config import * 
 
 from crystalformer.src.utils import GLXYZAW_from_file
-from crystalformer.src.wyckoff import mult_table
 from crystalformer.src.transformer import make_transformer
+from crystalformer.src.sym_group import *
 
 def test_autoregressive():
     atom_types = 119
@@ -13,18 +13,19 @@ def test_autoregressive():
     Kl = 8
     dim = 3
     dropout_rate = 0.0
+    sym_group = SpaceGroup()
 
     csv_file = os.path.join(datadir, '../../data/mini.csv')
     G, L, X, A, W = GLXYZAW_from_file(csv_file, atom_types, wyck_types, n_max, dim)
         
     @jax.vmap
     def lookup(G, W):
-        return mult_table[G-1, W] # (n_max, )
+        return sym_group.mult_table[G-1, W] # (n_max, )
     M = lookup(G, W) # (batchsize, n_max)
     num_sites = jnp.sum(A!=0, axis=1)
 
     key = jax.random.PRNGKey(42)
-    params, transformer = make_transformer(key, Nf, Kx, Kl, n_max, dim, 128, 4, 4, 8, 16,atom_types, wyck_types, dropout_rate) 
+    params, transformer = make_transformer(sym_group, key, Nf, Kx, Kl, n_max, dim, 128, 4, 4, 8, 16,atom_types, wyck_types, dropout_rate) 
 
     def test_fn(X, M):
         output = transformer(params, None, G[0], X, A[0], W[0], M, False)
