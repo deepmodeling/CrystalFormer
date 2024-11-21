@@ -1,0 +1,108 @@
+{
+ "object_id": "asr.stiffness::Result",
+ "constructor": "asr.stiffness::Result",
+ "args": [],
+ "kwargs": {
+  "data": {
+   "speed_of_sound_x": 21373.063352135574,
+   "speed_of_sound_y": 21370.856641622737,
+   "c_11": 345.6538905582198,
+   "c_12": 70.60779871921024,
+   "c_13": 0.0005778599312093563,
+   "c_14": null,
+   "c_15": null,
+   "c_16": null,
+   "c_21": 70.56537570227611,
+   "c_22": 345.58251859948973,
+   "c_23": 5.3339141915441094e-05,
+   "c_24": null,
+   "c_25": null,
+   "c_26": null,
+   "c_31": -1.48020629620793e-13,
+   "c_32": -3.171870634731279e-14,
+   "c_33": 275.09324474892543,
+   "c_34": null,
+   "c_35": null,
+   "c_36": null,
+   "c_41": null,
+   "c_42": null,
+   "c_43": null,
+   "c_44": null,
+   "c_45": null,
+   "c_46": null,
+   "c_51": null,
+   "c_52": null,
+   "c_53": null,
+   "c_54": null,
+   "c_55": null,
+   "c_56": null,
+   "c_61": null,
+   "c_62": null,
+   "c_63": null,
+   "c_64": null,
+   "c_65": null,
+   "c_66": null,
+   "__links__": {
+    "strains--1.0%-xx": "C2-b088c34acc1b",
+    "strains-+1.0%-xx": "C2-df0c254be7f9",
+    "strains--1.0%-yy": "C2-65c455263aaa",
+    "strains-+1.0%-yy": "C2-2fc059f556fa",
+    "strains--1.0%-xy": "C2-9ec52112fdfe",
+    "strains-+1.0%-xy": "C2-92a5b8f033fd"
+   },
+   "stiffness_tensor": {
+    "__ndarray__": [
+     [
+      3,
+      3
+     ],
+     "float64",
+     [
+      345.6538905582198,
+      70.60779871921024,
+      0.0005778599312093563,
+      70.56537570227611,
+      345.58251859948973,
+      5.3339141915441094e-05,
+      -1.48020629620793e-13,
+      -3.171870634731279e-14,
+      275.09324474892543
+     ]
+    ]
+   },
+   "eigenvalues": {
+    "__ndarray__": [
+     [
+      3
+     ],
+     "float64",
+     [
+      416.20479762329126,
+      275.03161153441835,
+      275.09324474892543
+     ]
+    ]
+   },
+   "dynamic_stability_stiffness": "high"
+  },
+  "metadata": {
+   "asr_name": "asr.stiffness",
+   "resources": {
+    "time": 0.05871438980102539,
+    "ncores": 1,
+    "tstart": 1605182101.3158286,
+    "tend": 1605182101.374543
+   },
+   "params": {
+    "strain_percent": 1.0
+   },
+   "code_versions": {
+    "asr": "0.4.1-fef8a0ce2ab711c3284f5dbfd158907b17f534e9",
+    "ase": "3.21.0b1-8a83b7f6a6fd68b95b9f542d7c054fa7204d764a",
+    "gpaw": "20.10.1b1-7ff8d570c9d25f2af1c40c00271000e3ab505f1c"
+   },
+   "creates": {}
+  },
+  "strict": true
+ }
+}

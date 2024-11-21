@@ -16,7 +16,7 @@ def test_autoregressive():
     sym_group = SpaceGroup()
 
     csv_file = os.path.join(datadir, '../../data/mini.csv')
-    G, L, X, A, W = GLXYZAW_from_file(csv_file, atom_types, wyck_types, n_max, dim)
+    G, L, X, A, W = GLXYZAW_from_file(sym_group, csv_file, atom_types, wyck_types, n_max, dim)
         
     @jax.vmap
     def lookup(G, W):

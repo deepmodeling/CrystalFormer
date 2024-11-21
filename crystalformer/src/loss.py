@@ -107,7 +107,7 @@ if __name__=='__main__':
     dropout_rate = 0.1 
 
     csv_file = '../data/mini.csv'
-    G, L, XYZ, A, W = GLXYZAW_from_file(csv_file, atom_types, wyck_types, n_max)
+    G, L, XYZ, A, W = GLXYZAW_from_file(SpaceGroup(), csv_file, atom_types, wyck_types, n_max)
 
     key = jax.random.PRNGKey(42)
 

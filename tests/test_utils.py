@@ -3,7 +3,8 @@ from config import *
 from crystalformer.src.utils import GLXYZAW_from_file
 from crystalformer.src.sym_group import *
 
-mult_table = SpaceGroup().mult_table
+sym_group = SpaceGroup()
+mult_table = sym_group.mult_table
 
 def calc_n(G, W):
     @jax.vmap
@@ -21,7 +22,7 @@ def test_utils():
     dim = 3
     csv_file = os.path.join(datadir, '../../data/mini.csv')
 
-    G, L, X, A, W = GLXYZAW_from_file(csv_file, atom_types, mult_types, n_max, dim)
+    G, L, X, A, W = GLXYZAW_from_file(sym_group, csv_file, atom_types, mult_types, n_max, dim)
     
     assert G.ndim == 1
     assert L.ndim == 2 

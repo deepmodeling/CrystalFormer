@@ -1,2 +1,0 @@
-epoch t_loss v_loss t_loss_w v_loss_w t_loss_a v_loss_a t_loss_xyz v_loss_xyz t_loss_l v_loss_l
-   100  103.986908  29.294735  6.042686  11.322526  41.474419  14.791241  44.250748  0.000000  12.219051  3.180969

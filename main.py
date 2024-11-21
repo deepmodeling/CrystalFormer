@@ -83,12 +83,12 @@ if __name__ == '__main__':
     group.add_argument('--mc_width', type=float, default=0.1, help='width of MCMC step')
 
     group = parser.add_argument_group("Symmetry group type")
-    group.add_argument('--sym_group', type=str, default="SpaceGroup()", help='type of symmetry group, can be "SpaceGroup()" or "LayerGroup()".')
+    group.add_argument('--sym_group', type=str, default="SpaceGroup", help='type of symmetry group, can be "SpaceGroup" or "LayerGroup".')
 
     args = parser.parse_args()
 
-    assert args.sym_group in {"SpaceGroup()", "LayerGroup()"}, 'input error, sym_group can only be "SpaceGroup()" or "LayerGroup()".'
-    sym_group = eval(args.sym_group)
+    assert args.sym_group in {"SpaceGroup", "LayerGroup"}, 'input error, --sym_group can only be "SpaceGroup()" or "LayerGroup()".'
+    sym_group = eval(args.sym_group + "()")
 
     key = jax.random.PRNGKey(42)
 
@@ -101,11 +101,11 @@ if __name__ == '__main__':
 
     ################### Data #############################
     if args.optimizer != "none":
-        train_data = GLXYZAW_from_file(args.train_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
-        valid_data = GLXYZAW_from_file(args.valid_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
+        train_data = GLXYZAW_from_file(sym_group, args.train_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
+        valid_data = GLXYZAW_from_file(sym_group, args.valid_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
     else:
         assert (args.spacegroup is not None) # for inference we need to specify space group
-        test_data = GLXYZAW_from_file(args.test_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
+        test_data = GLXYZAW_from_file(sym_group, args.test_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
         
         # jnp.set_printoptions(threshold=jnp.inf)  # print full array 
         constraints = jnp.arange(0, args.n_max, 1)

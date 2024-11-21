@@ -64,6 +64,8 @@ def symmetrize_lattice_layergroup(g, lattice):
     L = jnp.where(g <= 64, L, jnp.array([a, a, a, alpha, alpha, alpha]))
     L = jnp.where(g <= 72, L, jnp.array([a, a, c, 90., 90., 120.]))
 
+    return L
+
 if __name__ == '__main__':
     
     mask = make_lattice_mask_layergroup()
