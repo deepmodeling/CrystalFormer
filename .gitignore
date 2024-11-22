@@ -2,3 +2,4 @@
 job*
 *.out
 __pycache__/
+./mp_20/*.csv

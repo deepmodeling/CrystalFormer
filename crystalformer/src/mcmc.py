@@ -1,18 +1,13 @@
-import sys
-sys.path.append('../../crystalformer')
-
 import jax
 import jax.numpy as jnp
 from functools import partial
 
-from crystalformer.src.wyckoff import fc_mask_table
-from crystalformer.src.von_mises import sample_von_mises
-from crystalformer.src.sym_group import SymGroup, SpaceGroup
+from crystalformer.src.sym_group import *
 
-
-get_fc_mask = lambda g, w: jnp.logical_and((w>0)[:, None], fc_mask_table[g-1, w])
 
 def make_mcmc_step(params, n_max, atom_types, sym_group, atom_mask=None, constraints=None):
+
+    get_fc_mask = lambda g, w: jnp.logical_and((w>0)[:, None], sym_group.fc_mask_table[g-1, w])
 
     if atom_mask is None or jnp.all(atom_mask == 0):
         atom_mask = jnp.ones((n_max, atom_types))
@@ -127,11 +122,11 @@ if __name__  == "__main__":
     dropout_rate = 0.3
 
     csv_file = '../data/mini.csv'
-    G, L, XYZ, A, W = GLXYZAW_from_file(csv_file, atom_types, wyck_types, n_max)
+    G, L, XYZ, A, W = GLXYZAW_from_file(SpaceGroup(), csv_file, atom_types, wyck_types, n_max)
 
     key = jax.random.PRNGKey(42)
 
-    params, transformer = make_transformer(key, Nf, Kx, Kl, n_max, 128, 4, 4, 8, 16, 16, atom_types, wyck_types, dropout_rate) 
+    params, transformer = make_transformer(SpaceGroup(), key, Nf, Kx, Kl, n_max, 128, 4, 4, 8, 16, 16, atom_types, wyck_types, dropout_rate) 
  
     loss_fn, logp_fn = make_loss_fn(SpaceGroup(), n_max, atom_types, wyck_types, Kx, Kl, transformer)
 

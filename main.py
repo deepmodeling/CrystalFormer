@@ -14,12 +14,15 @@ from crystalformer.src.train import train
 from crystalformer.src.sample import sample_crystal, make_update_lattice
 from crystalformer.src.loss import make_loss_fn
 import crystalformer.src.checkpoint as checkpoint
-from crystalformer.src.wyckoff import mult_table
+# from crystalformer.src.wyckoff import mult_table
 from crystalformer.src.mcmc import make_mcmc_step
+from crystalformer.src.sym_group import *
 
 import argparse
 
 if __name__ == '__main__':
+    # print(mult_table.shape)
+    
     parser = argparse.ArgumentParser(description='')
 
     group = parser.add_argument_group('training parameters')
@@ -79,7 +82,13 @@ if __name__ == '__main__':
     group.add_argument('--nsweeps', type=int, default=10, help='number of sweeps')
     group.add_argument('--mc_width', type=float, default=0.1, help='width of MCMC step')
 
+    group = parser.add_argument_group("Symmetry group type")
+    group.add_argument('--sym_group', type=str, default="SpaceGroup", help='type of symmetry group, can be "SpaceGroup" or "LayerGroup".')
+
     args = parser.parse_args()
+
+    assert args.sym_group in {"SpaceGroup", "LayerGroup"}, 'input error, --sym_group can only be "SpaceGroup()" or "LayerGroup()".'
+    sym_group = eval(args.sym_group + "()")
 
     key = jax.random.PRNGKey(42)
 
@@ -92,11 +101,11 @@ if __name__ == '__main__':
 
     ################### Data #############################
     if args.optimizer != "none":
-        train_data = GLXYZAW_from_file(args.train_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
-        valid_data = GLXYZAW_from_file(args.valid_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
+        train_data = GLXYZAW_from_file(sym_group, args.train_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
+        valid_data = GLXYZAW_from_file(sym_group, args.valid_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
     else:
         assert (args.spacegroup is not None) # for inference we need to specify space group
-        test_data = GLXYZAW_from_file(args.test_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
+        test_data = GLXYZAW_from_file(sym_group, args.test_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
         
         # jnp.set_printoptions(threshold=jnp.inf)  # print full array 
         constraints = jnp.arange(0, args.n_max, 1)
@@ -164,7 +173,7 @@ if __name__ == '__main__':
             w_mask = None
 
     ################### Model #############################
-    params, transformer = make_transformer(key, args.Nf, args.Kx, args.Kl, args.n_max, 
+    params, transformer = make_transformer(sym_group, key, args.Nf, args.Kx, args.Kl, args.n_max, 
                                         args.h0_size, 
                                         args.transformer_layers, args.num_heads, 
                                         args.key_size, args.model_size, args.embed_size, 
@@ -176,7 +185,7 @@ if __name__ == '__main__':
 
     ################### Train #############################
 
-    loss_fn, logp_fn = make_loss_fn(args.n_max, args.atom_types, args.wyck_types, args.Kx, args.Kl, transformer, args.lamb_a, args.lamb_w, args.lamb_l)
+    loss_fn, logp_fn = make_loss_fn(sym_group, args.n_max, args.atom_types, args.wyck_types, args.Kx, args.Kl, transformer, args.lamb_a, args.lamb_w, args.lamb_l)
 
     print("\n========== Prepare logs ==========")
     if args.optimizer != "none" or args.restore_path is None:
@@ -265,8 +274,8 @@ if __name__ == '__main__':
 
         mc_steps = args.nsweeps * args.n_max
         print("mc_steps", mc_steps)
-        mcmc = make_mcmc_step(params, n_max=args.n_max, atom_types=args.atom_types, atom_mask=atom_mask, constraints=constraints)
-        update_lattice = make_update_lattice(transformer, params, args.atom_types, args.Kl, args.top_p, args.temperature)
+        mcmc = make_mcmc_step(params, n_max=args.n_max, atom_types=args.atom_types, sym_group=LayerGroup(), atom_mask=atom_mask, constraints=constraints)
+        update_lattice = make_update_lattice(sym_group, transformer, params, args.atom_types, args.Kl, args.top_p, args.temperature)
 
         num_batches = math.ceil(args.num_samples / args.batchsize)
         name, extension = args.output_filename.rsplit('.', 1)
@@ -277,7 +286,7 @@ if __name__ == '__main__':
             end_idx = min(start_idx + args.batchsize, args.num_samples)
             n_sample = end_idx - start_idx
             key, subkey = jax.random.split(key)
-            XYZ, A, W, M, L = sample_crystal(subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, args.spacegroup, w_mask, atom_mask, args.top_p, args.temperature, T1, constraints)
+            XYZ, A, W, M, L = sample_crystal(sym_group, subkey, transformer, params, args.n_max, n_sample, args.atom_types, args.wyck_types, args.Kx, args.Kl, args.spacegroup, w_mask, atom_mask, args.top_p, args.temperature, T1, constraints)
 
             G = args.spacegroup * jnp.ones((n_sample), dtype=int)
             if args.mcmc:
@@ -329,3 +338,4 @@ if __name__ == '__main__':
             data.to_csv(filename, mode='a', index=False, header=header)
 
             print ("Wrote samples to %s"%filename)
+    

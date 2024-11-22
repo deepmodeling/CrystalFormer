@@ -8,9 +8,11 @@ from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from functools import partial
 import multiprocessing
 import os
+import json
+import re
 
-from crystalformer.src.wyckoff import mult_table
 from crystalformer.src.elements import element_list
+from crystalformer.src.sym_group import *
 
 @jax.vmap
 def sort_atoms(W, A, X):
@@ -124,7 +126,109 @@ def process_one(cif, atom_types, wyck_types, n_max, tol=0.01):
 
     return g, l, fc, aa, ww 
 
-def GLXYZAW_from_file(csv_file, atom_types, wyck_types, n_max, num_workers=1):
+def process_one_c2db(data_dir, atom_types, wyck_types, n_max, tol=0.01):
+    sym_group = LayerGroup()
+    data_file = open(data_dir + '/data.json')
+    data = json.load(data_file)
+    g = data['lgnum']
+
+    def lattice_from_c2db(file_path):
+        file = open(file_path, 'r')
+        lines = file.readlines()
+        lattice_str = re.search(r'Lattice="([^"]+)"', lines[1]).group(1)
+        lattice_list = [float(v) for v in lattice_str.split()]
+
+        a_vec = lattice_list[:3]
+        b_vec = lattice_list[3:6]
+        c_vec = lattice_list[6:]
+
+        a_length = np.linalg.norm(a_vec)
+        b_length = np.linalg.norm(b_vec)
+        c_length = np.linalg.norm(c_vec)
+
+        alpha = np.arccos(np.dot(b_vec, c_vec) / (b_length * c_length))
+        beta = np.arccos(np.dot(a_vec, c_vec) / (a_length * c_length))
+        gamma = np.arccos(np.dot(a_vec, b_vec) / (a_length * b_length))
+
+        return np.array([a_length, b_length, c_length, alpha, beta, gamma])
+
+    def check_wyckoff_symbol(coord, g):
+        for i in range(1,20):
+            transformed_coords = sym_group.symops[g, i] @ jnp.array([*coord,1])
+            for t_coord in transformed_coords:
+                if bool(jnp.allclose(jnp.array(t_coord), jnp.array(coord), atol=tol)):
+                    return i
+
+    def atom_info(file_path):
+        f = open(file_path, 'r')
+        lines = f.readlines()
+        lattice_str = re.search(r'Lattice="([^"]+)"', lines[1]).group(1)
+        lattice_list = [float(v) for v in lattice_str.split()]
+        lattice_mat = jnp.reshape(jnp.array(lattice_list),(3,3))
+
+        atoms = []
+        for atom in lines[2:]:
+            atom = atom.split()
+            for i in range(1,4):
+                atom[i] = float(atom[i])
+            frac_coord = jnp.linalg.inv(lattice_mat) @ jnp.array(atom[1:4])
+            for i in range(1,4):
+                atom[i] = float(frac_coord[i-1])
+            atoms.append(atom[0:4])
+        return atoms
+
+    l = lattice_from_c2db(data_dir + '/structure.xyz')
+
+    atoms = atom_info(data_dir + '/structure.xyz')
+    num_sites = len(atoms)
+    print(g, num_sites)
+
+    natoms = 0
+    ww = []
+    aa = []
+    fc = []
+    ws = []
+    for site in atoms:
+        a = element_list.index(site[0]) 
+        x = site[1:]
+        w = check_wyckoff_symbol(x, g)
+        m = sym_group.mult_table[g, w]
+        symbol = str(m) + chr(w+96)
+        natoms += m
+        assert (a < atom_types)
+        assert (w < wyck_types)
+        aa.append( a )
+        ww.append( w )
+        fc.append( x )  # the generator of the orbit
+        ws.append( symbol )
+        print ('g, a, w, m, symbol, x:', g, a, w, m, symbol, x)
+    idx = np.argsort(ww)
+    ww = np.array(ww)[idx]
+    aa = np.array(aa)[idx]
+    fc = np.array(fc)[idx].reshape(num_sites, 3)
+    ws = np.array(ws)[idx]
+    print (ws, aa, ww, natoms) 
+
+    aa = np.concatenate([aa,
+                        np.full((n_max - num_sites, ), 0)],
+                        axis=0)
+
+    ww = np.concatenate([ww,
+                        np.full((n_max - num_sites, ), 0)],
+                        axis=0)
+    fc = np.concatenate([fc, 
+                         np.full((n_max - num_sites, 3), 1e10)],
+                        axis=0)
+    print ('===================================')
+    return g, l, fc, aa, ww 
+    
+
+
+
+
+
+
+def GLXYZAW_from_file(sym_group, csv_file, atom_types, wyck_types, n_max, num_workers=1):
     """
     Read cif strings from csv file and convert them to G, L, XYZ, A, W
     Note that cif strings must be in the column 'cif'
@@ -143,14 +247,29 @@ def GLXYZAW_from_file(csv_file, atom_types, wyck_types, n_max, num_workers=1):
       A: atom types
       W: wyckoff letters
     """
-    data = pd.read_csv(csv_file)
-    cif_strings = data['cif']
+    if type(sym_group)==type(SpaceGroup()):
+        data = pd.read_csv(csv_file)
+        cif_strings = data['cif']
+        # print(type(cif_strings))
 
-    p = multiprocessing.Pool(num_workers)
-    partial_process_one = partial(process_one, atom_types=atom_types, wyck_types=wyck_types, n_max=n_max)
-    results = p.map_async(partial_process_one, cif_strings).get()
-    p.close()
-    p.join()
+        p = multiprocessing.Pool(num_workers)
+        partial_process_one = partial(process_one, atom_types=atom_types, wyck_types=wyck_types, n_max=n_max)
+        results = p.map_async(partial_process_one, cif_strings).get()
+        p.close()
+        p.join()
+    elif type(sym_group)==type(LayerGroup()):
+        paths = os.walk(csv_file)
+        data_dir = []
+        for path, dir_list, file_list in paths:
+            for file_name in file_list:
+                if file_name == 'data.json':
+                    data_dir.append(os.path.join(path, file_name).replace('/data.json', ''))
+        # print(data_dir)
+        p = multiprocessing.Pool(num_workers)
+        partial_process_one_c2db = partial(process_one_c2db, atom_types=atom_types, wyck_types=wyck_types, n_max=n_max)
+        results = p.map_async(partial_process_one_c2db, data_dir).get()
+        p.close()
+        p.join()
 
     G, L, XYZ, A, W = zip(*results)
 
@@ -205,20 +324,50 @@ def GLXA_to_csv(G, L, X, A, num_worker=1, filename='out_structure.csv'):
 
 
 if __name__=='__main__':
+    # atom_types = 119
+    # wyck_types = 28
+    # n_max = 24
+
+    # import numpy as np
+    # from crystalformer.src.sym_group import *
+    # np.set_printoptions(threshold=np.inf)
+    
+    # #csv_file = '../data/mini.csv'
+    # #csv_file = '/home/wanglei/cdvae/data/carbon_24/val.csv'
+    # #csv_file = '/home/wanglei/cdvae/data/perov_5/val.csv'
+    # csv_file = './mp_20/test_layer_test.csv'
+
+    # G, L, XYZ, A, W = GLXYZAW_from_file(SpaceGroup(), csv_file, atom_types, wyck_types, n_max)
+    
+    # print (G.shape)
+    # print (L.shape)
+    # print (XYZ.shape)
+    # print (A.shape)
+    # print (W.shape)
+    
+    # print ('L:\n',L)
+    # print ('XYZ:\n',XYZ)
+
+
+    # @jax.vmap
+    # def lookup(G, W):
+    #     return SpaceGroup().mult_table[G-1, W] # (n_max, )
+    # M = lookup(G, W) # (batchsize, n_max)
+    # print ('N:\n', M.sum(axis=-1))
     atom_types = 119
-    wyck_types = 28
+    wyck_types = 18
     n_max = 24
+    csv_file = './c2db'
 
-    import numpy as np 
-    np.set_printoptions(threshold=np.inf)
+    # process_one_c2db('./c2db/A/2C/1', atom_types, wyck_types, n_max)
+    G, L, XYZ, A, W = GLXYZAW_from_file(LayerGroup(), csv_file, atom_types, wyck_types, n_max)
     
-    #csv_file = '../data/mini.csv'
-    #csv_file = '/home/wanglei/cdvae/data/carbon_24/val.csv'
-    #csv_file = '/home/wanglei/cdvae/data/perov_5/val.csv'
-    csv_file = '/home/wanglei/cdvae/data/mp_20/train.csv'
+    print (G.shape)
+    print (L.shape)
+    print (XYZ.shape)
+    print (A.shape)
+    print (W.shape)
 
-    G, L, XYZ, A, W = GLXYZAW_from_file(csv_file, atom_types, wyck_types, n_max)
-    
     print (G.shape)
     print (L.shape)
     print (XYZ.shape)
@@ -231,6 +380,6 @@ if __name__=='__main__':
 
     @jax.vmap
     def lookup(G, W):
-        return mult_table[G-1, W] # (n_max, )
+        return LayerGroup().mult_table[G-1, W] # (n_max, )
     M = lookup(G, W) # (batchsize, n_max)
     print ('N:\n', M.sum(axis=-1))

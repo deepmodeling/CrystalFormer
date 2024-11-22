@@ -132,26 +132,8 @@ def gaussian_logpdf(x, loc, concentration):
 
 if __name__=='__main__':
     key = jax.random.PRNGKey(42)
-    # loc = jnp.array([-1.0, 1.0, 0.0])
-    # kappa = jnp.array([10.0, 10.0, 100.0])
-    # x = sample_von_mises(key, loc, kappa, (3, ))
-    num_samples = 200
-    loc = jnp.array([0.0 for _ in range(num_samples)])
-    kappa = jnp.array([1.0 for _ in range(num_samples)])
-    theta = sample_von_mises(key, loc, kappa, (num_samples, ))
-    # print(theta)
-    
-    import matplotlib.pyplot as plt
-    import numpy as np
-
-    fig = plt.figure()
-    ax = fig.add_subplot(projection = 'polar')
-    ax.scatter(theta, [1.0 for _ in range(num_samples)])
-    plt.show()
-
-    # theta = []
-    # for _ in range(100):
-    #     x = sample_von_mises(jax.random.PRNGKey(np.random.randint(100)), loc, kappa, (1, ))[0]
-    #     theta.append(x)
-    # print(theta)
+    loc = jnp.array([-1.0, 1.0, 0.0])
+    kappa = jnp.array([10.0, 10.0, 100.0])
+    x = sample_von_mises(key, loc, kappa, (3, ))
+    print(type(x))
 
