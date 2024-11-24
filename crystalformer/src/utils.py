@@ -126,60 +126,64 @@ def process_one(cif, atom_types, wyck_types, n_max, tol=0.01):
 
     return g, l, fc, aa, ww 
 
-def process_one_c2db(data_dir, atom_types, wyck_types, n_max, tol=0.01):
-    sym_group = LayerGroup()
-    data_file = open(data_dir + '/data.json')
-    data = json.load(data_file)
+def process_one_c2db(data, atom_types, wyck_types, n_max, tol=0.01):
+    # sym_group = LayerGroup()
+    # data_file = open(data_dir + '/data.json')
+    # data = json.load(data_file)
     g = data['lgnum']
 
-    def lattice_from_c2db(file_path):
-        file = open(file_path, 'r')
-        lines = file.readlines()
-        lattice_str = re.search(r'Lattice="([^"]+)"', lines[1]).group(1)
-        lattice_list = [float(v) for v in lattice_str.split()]
+    # def lattice_from_c2db(file_path):
+    #     file = open(file_path, 'r')
+    #     lines = file.readlines()
+    #     lattice_str = re.search(r'Lattice="([^"]+)"', lines[1]).group(1)
+    #     lattice_list = [float(v) for v in lattice_str.split()]
 
-        a_vec = lattice_list[:3]
-        b_vec = lattice_list[3:6]
-        c_vec = lattice_list[6:]
+    #     a_vec = lattice_list[:3]
+    #     b_vec = lattice_list[3:6]
+    #     c_vec = lattice_list[6:]
 
-        a_length = np.linalg.norm(a_vec)
-        b_length = np.linalg.norm(b_vec)
-        c_length = np.linalg.norm(c_vec)
+    #     a_length = np.linalg.norm(a_vec)
+    #     b_length = np.linalg.norm(b_vec)
+    #     c_length = np.linalg.norm(c_vec)
 
-        alpha = np.arccos(np.dot(b_vec, c_vec) / (b_length * c_length))
-        beta = np.arccos(np.dot(a_vec, c_vec) / (a_length * c_length))
-        gamma = np.arccos(np.dot(a_vec, b_vec) / (a_length * b_length))
+    #     alpha = np.arccos(np.dot(b_vec, c_vec) / (b_length * c_length))
+    #     beta = np.arccos(np.dot(a_vec, c_vec) / (a_length * c_length))
+    #     gamma = np.arccos(np.dot(a_vec, b_vec) / (a_length * b_length))
 
-        return np.array([a_length, b_length, c_length, alpha, beta, gamma])
+    #     return np.array([a_length, b_length, c_length, alpha, beta, gamma])
 
-    def check_wyckoff_symbol(coord, g):
-        for i in range(1,20):
-            transformed_coords = sym_group.symops[g, i] @ jnp.array([*coord,1])
-            for t_coord in transformed_coords:
-                if bool(jnp.allclose(jnp.array(t_coord), jnp.array(coord), atol=tol)):
-                    return i
+    # def check_wyckoff_symbol(coord, g):
+    #     for i in range(1,20):
+    #         transformed_coords = sym_group.symops[g, i] @ jnp.array([*coord,1])
+    #         for t_coord in transformed_coords:
+    #             if bool(jnp.allclose(jnp.array(t_coord), jnp.array(coord), atol=tol)):
+    #                 return i
 
-    def atom_info(file_path):
-        f = open(file_path, 'r')
-        lines = f.readlines()
-        lattice_str = re.search(r'Lattice="([^"]+)"', lines[1]).group(1)
-        lattice_list = [float(v) for v in lattice_str.split()]
-        lattice_mat = jnp.reshape(jnp.array(lattice_list),(3,3))
+    # def atom_info(file_path):
+    #     f = open(file_path, 'r')
+    #     lines = f.readlines()
+    #     lattice_str = re.search(r'Lattice="([^"]+)"', lines[1]).group(1)
+    #     lattice_list = [float(v) for v in lattice_str.split()]
+    #     lattice_mat = jnp.reshape(jnp.array(lattice_list),(3,3))
 
-        atoms = []
-        for atom in lines[2:]:
-            atom = atom.split()
-            for i in range(1,4):
-                atom[i] = float(atom[i])
-            frac_coord = jnp.linalg.inv(lattice_mat) @ jnp.array(atom[1:4])
-            for i in range(1,4):
-                atom[i] = float(frac_coord[i-1])
-            atoms.append(atom[0:4])
-        return atoms
+    #     atoms = []
+    #     for atom in lines[2:]:
+    #         atom = atom.split()
+    #         for i in range(1,4):
+    #             atom[i] = float(atom[i])
+    #         frac_coord = jnp.linalg.inv(lattice_mat) @ jnp.array(atom[1:4])
+    #         for i in range(1,4):
+    #             atom[i] = float(frac_coord[i-1])
+    #         atoms.append(atom[0:4])
+    #     return atoms
 
-    l = lattice_from_c2db(data_dir + '/structure.xyz')
+    # l = lattice_from_c2db(data_dir + '/structure.xyz')
+    l = eval(data['l'])
 
-    atoms = atom_info(data_dir + '/structure.xyz')
+    # atoms = atom_info(data_dir + '/structure.xyz')
+    atoms = eval(data['atoms'])
+    pos = eval(data['positions'])
+    wyckoff = eval(data['wyckoff'])
     num_sites = len(atoms)
     print(g, num_sites)
 
@@ -188,12 +192,16 @@ def process_one_c2db(data_dir, atom_types, wyck_types, n_max, tol=0.01):
     aa = []
     fc = []
     ws = []
-    for site in atoms:
-        a = element_list.index(site[0]) 
-        x = site[1:]
-        w = check_wyckoff_symbol(x, g)
-        m = sym_group.mult_table[g, w]
-        symbol = str(m) + chr(w+96)
+    for i in range(num_sites):
+        try:
+            a = element_list.index(atoms[i])
+        except:
+            print(i)
+            print(data)
+        x = pos[i]
+        symbol = wyckoff[i]
+        w = letter_to_number(symbol[-1])
+        m = int(symbol[:-1])
         natoms += m
         assert (a < atom_types)
         assert (w < wyck_types)
@@ -247,8 +255,8 @@ def GLXYZAW_from_file(sym_group, csv_file, atom_types, wyck_types, n_max, num_wo
       A: atom types
       W: wyckoff letters
     """
+    data = pd.read_csv(csv_file)
     if type(sym_group)==type(SpaceGroup()):
-        data = pd.read_csv(csv_file)
         cif_strings = data['cif']
         # print(type(cif_strings))
 
@@ -258,16 +266,20 @@ def GLXYZAW_from_file(sym_group, csv_file, atom_types, wyck_types, n_max, num_wo
         p.close()
         p.join()
     elif type(sym_group)==type(LayerGroup()):
-        paths = os.walk(csv_file)
-        data_dir = []
-        for path, dir_list, file_list in paths:
-            for file_name in file_list:
-                if file_name == 'data.json':
-                    data_dir.append(os.path.join(path, file_name).replace('/data.json', ''))
+        data_list = []
+        for i in range(len(data)):
+            single_data = {'lgnum':data['LayerGroup'][i], 'l':data['Lattice'][i], 'atoms':data['Elements'][i], 'positions':data['FractionCoords'][i], 'wyckoff':data['WyckoffSymbols'][i]}
+            data_list.append(single_data)
+        # paths = os.walk(csv_file)
+        # data_dir = []
+        # for path, dir_list, file_list in paths:
+        #     for file_name in file_list:
+        #         if file_name == 'data.json':
+        #             data_dir.append(os.path.join(path, file_name).replace('/data.json', ''))
         # print(data_dir)
         p = multiprocessing.Pool(num_workers)
         partial_process_one_c2db = partial(process_one_c2db, atom_types=atom_types, wyck_types=wyck_types, n_max=n_max)
-        results = p.map_async(partial_process_one_c2db, data_dir).get()
+        results = p.map_async(partial_process_one_c2db, data_list).get()
         p.close()
         p.join()
 

@@ -20,7 +20,7 @@ from crystalformer.src.sym_group import *
 
 import argparse
 
-if __name__ == '__main__':
+def main():
     # print(mult_table.shape)
     
     parser = argparse.ArgumentParser(description='')
