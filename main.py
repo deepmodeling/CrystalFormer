@@ -338,4 +338,6 @@ def main():
             data.to_csv(filename, mode='a', index=False, header=header)
 
             print ("Wrote samples to %s"%filename)
-    
+
+if __name__ == '__main__':
+    main()    
