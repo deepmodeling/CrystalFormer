@@ -1,22 +1,16 @@
-import sys
-sys.path.append('./src/')
-
 import pandas as pd
 import numpy as np
 from ast import literal_eval
 import multiprocessing
 import itertools
 import argparse
+from functools import partial
 
 from pymatgen.core import Structure, Lattice
-from wyckoff import wmax_table, mult_table, symops
+# from wyckoff import wmax_table, mult_table, symops
+from crystalformer.src.sym_group import *
 
-symops = np.array(symops)
-mult_table = np.array(mult_table)
-wmax_table = np.array(wmax_table)
-
-
-def symmetrize_atoms(g, w, x):
+def symmetrize_atoms(sym_group, g, w, x):
     '''
     symmetrize atoms via, apply all sg symmetry op, finding the generator, and lastly apply symops 
     we need to do that because the sampled atom might not be at the first WP
@@ -27,6 +21,10 @@ def symmetrize_atoms(g, w, x):
     Returns:
        xs: (m, 3) symmetrize atom positions
     '''
+
+    symops = np.array(sym_group.symops)
+    mult_table = np.array(sym_group.mult_table)
+    wmax_table = np.array(sym_group.wmax_table)
 
     # (1) apply all space group symmetry op to the x 
     w_max = wmax_table[g-1].item()
@@ -55,7 +53,7 @@ def symmetrize_atoms(g, w, x):
     xs -= np.floor(xs) # wrap back to 0-1 
     return xs
 
-def get_struct_from_lawx(G, L, A, W, X):
+def get_struct_from_lawx(sym_group, G, L, A, W, X):
     """
     Get the pymatgen.Structure object from the input data
 
@@ -74,7 +72,7 @@ def get_struct_from_lawx(G, L, A, W, X):
     W = W[np.nonzero(A)]
 
     lattice = Lattice.from_parameters(*L)
-    xs_list = [symmetrize_atoms(G, w, x) for w, x in zip(W, X)]
+    xs_list = [symmetrize_atoms(sym_group, G, w, x) for w, x in zip(W, X)]
     as_list = [[A[idx] for _ in range(len(xs))] for idx, xs in enumerate(xs_list)]
     A_list = list(itertools.chain.from_iterable(as_list))
     X_list = list(itertools.chain.from_iterable(xs_list))
@@ -101,7 +99,9 @@ def main(args):
     ### Multiprocessing. Use it if only run on CPU
     p = multiprocessing.Pool(args.num_io_process)
     G = np.array([int(args.label) for _ in range(len(L))])
-    structures = p.starmap_async(get_struct_from_lawx, zip(G, L, A, W, X)).get()
+    sym_group = eval(args.sym_group + '()')
+    partial_get_struct_from_lawx = partial(get_struct_from_lawx, sym_group=sym_group)
+    structures = p.starmap_async(partial_get_struct_from_lawx, zip(G, L, A, W, X)).get()
     p.close()
     p.join()
 
@@ -117,5 +117,6 @@ if __name__ == '__main__':
     parser.add_argument('--output_path', default='./', help='filepath of the output and input file')
     parser.add_argument('--label', default='194', help='output file label')
     parser.add_argument('--num_io_process', type=int, default=40, help='number of process used in multiprocessing io')
+    parser.add_argument('--sym_group', type=str, default="SpaceGroup", help='Space group or layer group.')
     args = parser.parse_args()
     main(args)

@@ -147,10 +147,10 @@ def process_one_c2db(file_path, atom_types, wyck_types, n_max, tol=0.1):
     primitive_equivalent_idx = la['equivalent_atoms']
 
     mult_list = []
-    atom_type_list = []
+    aa = []
     atom_species_list = []
-    fc_list = []
-    wyckoff_num_list = []
+    fc = []
+    ww = []
     wyckoff_symbol_list = []
     
     for idx in set(primitive_equivalent_idx):
@@ -167,12 +167,12 @@ def process_one_c2db(file_path, atom_types, wyck_types, n_max, tol=0.1):
         assert (len(wyckoff_letter) == 1)
 
         mult_list.append(mult)
-        atom_type_list.append(atom_type[0])
+        aa.append(atom_type[0])
         atom_species_list.append(atom_species[0])
-        fc_list.append(positions[0])
+        fc.append(positions[0])
         wyckoff_symbol = str(mult) + wyckoff_letter[0]
         wyckoff_symbol_list.append(wyckoff_symbol)
-        wyckoff_num_list.append(wyckoff_num[0])
+        ww.append(wyckoff_num[0])
 
         print ('g, a, m, symbol, x:', g, atom_species[0], mult, wyckoff_symbol, positions)
     
@@ -180,25 +180,25 @@ def process_one_c2db(file_path, atom_types, wyck_types, n_max, tol=0.1):
     l_pyxtal = xLattice.from_matrix(l)
     abc = np.array([l_pyxtal.a, l_pyxtal.b, l_pyxtal.c]) / natoms**(1./3.)
     angles = np.array([l_pyxtal.alpha, l_pyxtal.beta, l_pyxtal.gamma])
-    lattice = np.concatenate([abc, angles])
+    l = np.concatenate([abc, angles])
 
     print(wyckoff_symbol_list, mult_list, atom_species_list, natoms)
 
-    num_sites = len(fc_list)
-    atom_type_list = np.concatenate([atom_type_list,
+    num_sites = len(fc)
+    aa = np.concatenate([aa,
                         np.full((n_max - num_sites, ), 0)],
                         axis=0)
 
-    wyckoff_num_list = np.concatenate([wyckoff_num_list,
+    ww = np.concatenate([ww,
                         np.full((n_max - num_sites, ), 0)],
                         axis=0)
-    fc_list = np.concatenate([fc_list, 
+    fc = np.concatenate([fc, 
                          np.full((n_max - num_sites, 3), 1e10)],
                         axis=0)
 
     print ('===================================')
 
-    return g, lattice, fc_list, atom_type_list, wyckoff_num_list
+    return g, l, fc, aa, ww
 
 
 
