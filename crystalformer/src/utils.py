@@ -8,8 +8,10 @@ from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from functools import partial
 import multiprocessing
 import os
-import json
-import re
+
+from ase.io import read
+from spglib import get_layergroup
+from pyxtal.lattice import Lattice as xLattice
 
 from crystalformer.src.elements import element_list
 from crystalformer.src.sym_group import *
@@ -126,123 +128,89 @@ def process_one(cif, atom_types, wyck_types, n_max, tol=0.01):
 
     return g, l, fc, aa, ww 
 
-def process_one_c2db(data, atom_types, wyck_types, n_max, tol=0.01):
-    # sym_group = LayerGroup()
-    # data_file = open(data_dir + '/data.json')
-    # data = json.load(data_file)
-    g = data['lgnum']
+def process_one_c2db(file_path, atom_types, wyck_types, n_max, tol=0.1):
+    crystal = read(file_path + '/structure.xyz')
+    la = get_layergroup((crystal.get_cell(), crystal.get_scaled_positions(), crystal.get_atomic_numbers()), symprec=tol)
+    g = la['number']
+    l = la['std_lattice']
+    map_ = la['mapping_to_primitive']
+    std_map = la['std_mapping_to_primitive']
+    std_pos = la['std_positions']
+    std_types = la['std_types']
+    std_chemical_symbols = np.array([element_list[i] for i in std_types])
+    input_wyckoffs = la['wyckoffs']
+    input_wyckoffs_num = [letter_to_number(w) for w in input_wyckoffs]
 
-    # def lattice_from_c2db(file_path):
-    #     file = open(file_path, 'r')
-    #     lines = file.readlines()
-    #     lattice_str = re.search(r'Lattice="([^"]+)"', lines[1]).group(1)
-    #     lattice_list = [float(v) for v in lattice_str.split()]
+    assert all([type_ < atom_types for type_ in std_types])
+    assert all([w < wyck_types for w in input_wyckoffs_num])
 
-    #     a_vec = lattice_list[:3]
-    #     b_vec = lattice_list[3:6]
-    #     c_vec = lattice_list[6:]
+    primitive_equivalent_idx = la['equivalent_atoms']
 
-    #     a_length = np.linalg.norm(a_vec)
-    #     b_length = np.linalg.norm(b_vec)
-    #     c_length = np.linalg.norm(c_vec)
+    mult_list = []
+    atom_type_list = []
+    atom_species_list = []
+    fc_list = []
+    wyckoff_num_list = []
+    wyckoff_symbol_list = []
+    
+    for idx in set(primitive_equivalent_idx):
+        full_idx, = np.where(primitive_equivalent_idx == idx)
+        mult = len(full_idx)
+        std_idx, = np.where(std_map == map_[idx])
+        atom_type = list(set(std_types[std_idx]))
+        atom_species = list(set(std_chemical_symbols[std_idx]))
+        positions = std_pos[std_idx]
+        wyckoff_letter = list(set(np.array(input_wyckoffs)[full_idx]))
+        wyckoff_num = list(set(np.array(input_wyckoffs_num)[full_idx]))
 
-    #     alpha = np.arccos(np.dot(b_vec, c_vec) / (b_length * c_length))
-    #     beta = np.arccos(np.dot(a_vec, c_vec) / (a_length * c_length))
-    #     gamma = np.arccos(np.dot(a_vec, b_vec) / (a_length * b_length))
+        assert (len(atom_species) == 1)
+        assert (len(wyckoff_letter) == 1)
 
-    #     return np.array([a_length, b_length, c_length, alpha, beta, gamma])
+        mult_list.append(mult)
+        atom_type_list.append(atom_type[0])
+        atom_species_list.append(atom_species[0])
+        fc_list.append(positions[0])
+        wyckoff_symbol = str(mult) + wyckoff_letter[0]
+        wyckoff_symbol_list.append(wyckoff_symbol)
+        wyckoff_num_list.append(wyckoff_num[0])
 
-    # def check_wyckoff_symbol(coord, g):
-    #     for i in range(1,20):
-    #         transformed_coords = sym_group.symops[g, i] @ jnp.array([*coord,1])
-    #         for t_coord in transformed_coords:
-    #             if bool(jnp.allclose(jnp.array(t_coord), jnp.array(coord), atol=tol)):
-    #                 return i
+        print ('g, a, m, symbol, x:', g, atom_species[0], mult, wyckoff_symbol, positions)
+    
+    natoms = sum(mult_list)
+    l_pyxtal = xLattice.from_matrix(l)
+    abc = np.array([l_pyxtal.a, l_pyxtal.b, l_pyxtal.c]) / natoms**(1./3.)
+    angles = np.array([l_pyxtal.alpha, l_pyxtal.beta, l_pyxtal.gamma])
+    lattice = np.concatenate([abc, angles])
 
-    # def atom_info(file_path):
-    #     f = open(file_path, 'r')
-    #     lines = f.readlines()
-    #     lattice_str = re.search(r'Lattice="([^"]+)"', lines[1]).group(1)
-    #     lattice_list = [float(v) for v in lattice_str.split()]
-    #     lattice_mat = jnp.reshape(jnp.array(lattice_list),(3,3))
+    print(wyckoff_symbol_list, mult_list, atom_species_list, natoms)
 
-    #     atoms = []
-    #     for atom in lines[2:]:
-    #         atom = atom.split()
-    #         for i in range(1,4):
-    #             atom[i] = float(atom[i])
-    #         frac_coord = jnp.linalg.inv(lattice_mat) @ jnp.array(atom[1:4])
-    #         for i in range(1,4):
-    #             atom[i] = float(frac_coord[i-1])
-    #         atoms.append(atom[0:4])
-    #     return atoms
-
-    # l = lattice_from_c2db(data_dir + '/structure.xyz')
-    l = eval(data['l'])
-
-    # atoms = atom_info(data_dir + '/structure.xyz')
-    atoms = eval(data['atoms'])
-    pos = eval(data['positions'])
-    wyckoff = eval(data['wyckoff'])
-    num_sites = len(atoms)
-    print(g, num_sites)
-
-    natoms = 0
-    ww = []
-    aa = []
-    fc = []
-    ws = []
-    for i in range(num_sites):
-        try:
-            a = element_list.index(atoms[i])
-        except:
-            print(i)
-            print(data)
-        x = pos[i]
-        symbol = wyckoff[i]
-        w = letter_to_number(symbol[-1])
-        m = int(symbol[:-1])
-        natoms += m
-        assert (a < atom_types)
-        assert (w < wyck_types)
-        aa.append( a )
-        ww.append( w )
-        fc.append( x )  # the generator of the orbit
-        ws.append( symbol )
-        print ('g, a, w, m, symbol, x:', g, a, w, m, symbol, x)
-    idx = np.argsort(ww)
-    ww = np.array(ww)[idx]
-    aa = np.array(aa)[idx]
-    fc = np.array(fc)[idx].reshape(num_sites, 3)
-    ws = np.array(ws)[idx]
-    print (ws, aa, ww, natoms) 
-
-    aa = np.concatenate([aa,
+    num_sites = len(fc_list)
+    atom_type_list = np.concatenate([atom_type_list,
                         np.full((n_max - num_sites, ), 0)],
                         axis=0)
 
-    ww = np.concatenate([ww,
+    wyckoff_num_list = np.concatenate([wyckoff_num_list,
                         np.full((n_max - num_sites, ), 0)],
                         axis=0)
-    fc = np.concatenate([fc, 
+    fc_list = np.concatenate([fc_list, 
                          np.full((n_max - num_sites, 3), 1e10)],
                         axis=0)
+
     print ('===================================')
-    return g, l, fc, aa, ww 
-    
+
+    return g, lattice, fc_list, atom_type_list, wyckoff_num_list
 
 
 
 
-
-
-def GLXYZAW_from_file(sym_group, csv_file, atom_types, wyck_types, n_max, num_workers=1):
+def GLXYZAW_from_file(sym_group, file_path, atom_types, wyck_types, n_max, num_workers=1):
     """
     Read cif strings from csv file and convert them to G, L, XYZ, A, W
     Note that cif strings must be in the column 'cif'
 
     Args:
-      csv_file: csv file containing cif strings
+      sym_group: SpaceGroup() or LayerGroup()
+      file_path: path to the dataset
       atom_types: number of atom types
       wyck_types: number of wyckoff types
       n_max: maximum number of atoms in the unit cell
@@ -255,8 +223,8 @@ def GLXYZAW_from_file(sym_group, csv_file, atom_types, wyck_types, n_max, num_wo
       A: atom types
       W: wyckoff letters
     """
-    data = pd.read_csv(csv_file)
     if type(sym_group)==type(SpaceGroup()):
+        data = pd.read_csv(file_path)
         cif_strings = data['cif']
         # print(type(cif_strings))
 
@@ -266,17 +234,13 @@ def GLXYZAW_from_file(sym_group, csv_file, atom_types, wyck_types, n_max, num_wo
         p.close()
         p.join()
     elif type(sym_group)==type(LayerGroup()):
+        paths = os.walk(file_path)
         data_list = []
-        for i in range(len(data)):
-            single_data = {'lgnum':data['LayerGroup'][i], 'l':data['Lattice'][i], 'atoms':data['Elements'][i], 'positions':data['FractionCoords'][i], 'wyckoff':data['WyckoffSymbols'][i]}
-            data_list.append(single_data)
-        # paths = os.walk(csv_file)
-        # data_dir = []
-        # for path, dir_list, file_list in paths:
-        #     for file_name in file_list:
-        #         if file_name == 'data.json':
-        #             data_dir.append(os.path.join(path, file_name).replace('/data.json', ''))
-        # print(data_dir)
+        for path, _, file_list in paths:
+            for file_name in file_list:
+                if file_name == 'data.json':
+                    data_list.append(os.path.join(path, file_name).replace('/data.json', ''))
+        
         p = multiprocessing.Pool(num_workers)
         partial_process_one_c2db = partial(process_one_c2db, atom_types=atom_types, wyck_types=wyck_types, n_max=n_max)
         results = p.map_async(partial_process_one_c2db, data_list).get()
@@ -368,7 +332,7 @@ if __name__=='__main__':
     # print ('N:\n', M.sum(axis=-1))
     atom_types = 119
     wyck_types = 18
-    n_max = 24
+    n_max = 27
     csv_file = './c2db'
 
     # process_one_c2db('./c2db/A/2C/1', atom_types, wyck_types, n_max)

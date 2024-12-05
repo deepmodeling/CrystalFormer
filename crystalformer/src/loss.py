@@ -38,17 +38,6 @@ def make_loss_fn(sym_group, n_max, atom_types, wyck_types, Kx, Kl, transformer, 
         logp_x = jnp.sum(jnp.where(fc_mask_x, logp_x, jnp.zeros_like(logp_x)))
 
         return logp_x
-    
-    # ll-edit
-    def compute_logp_z(h_z, Z, fc_mask_z):
-        z_logit, loc, kappa = jnp.split(h_z, [Kx, 2*Kx], axis=-1)
-        z_loc = loc.reshape(n_max, Kx)
-        kappa = kappa.reshape(n_max, Kx)
-        logp_z = jax.vmap(gaussian_logpdf, (None, 1, 1), 1)((Z-0.5)*2*jnp.pi, loc, kappa) # (n_max, Kx)
-        logp_z = jax.scipy.special.logsumexp(z_logit + logp_z, axis=1) # (n_max, )
-        logp_z = jnp.sum(jnp.where(fc_mask_z, logp_z, jnp.zeros_like(logp_z)))
-
-        return logp_z
 
     @partial(jax.vmap, in_axes=(None, None, 0, 0, 0, 0, 0, None), out_axes=0) # batch 
     def logp_fn(params, key, G, L, XYZ, A, W, is_train):
