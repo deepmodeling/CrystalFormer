@@ -7,3 +7,7 @@ python ./main.py --optimizer none --test_path ./mp_20/test_layer_test.csv --rest
 
 
 python ./main.py --folder ./data/ --train_path ./c2db --valid_path ./c2db --sym_group LayerGroup --epochs 200 
+
+python ./main.py --optimizer none --test_path ./mp_20/test_layer_test.csv --restore_path ./data/test/epoch_000100.pkl --spacegroup 61 --num_samples 10  --batchsize 200 --temperature 1.0 --elements H O
+
+python ./scripts/awl2struct_2d.py --output_path ./data/test/ --label 65 

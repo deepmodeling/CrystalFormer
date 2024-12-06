@@ -105,7 +105,7 @@ if __name__ == '__main__':
     group_str = "LayerGroup()"
     a = eval(group_str)
     print(type(a))
-    print(type(a) in {type(SpaceGroup()), type(LayerGroup())})
+    print(type(a) == type(LayerGroup()))
     print(a.mult_table)
     # mask = a.make_lattice_mask()()
     # print(mask)

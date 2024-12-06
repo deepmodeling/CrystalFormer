@@ -9,9 +9,10 @@ import itertools
 import argparse
 
 from pymatgen.core import Structure, Lattice
-from crystalformer.src.sym_group import SpaceGroup
+from pymatgen.io.xyz import XYZ
+from crystalformer.src.sym_group import LayerGroup
 
-sym_group = SpaceGroup()
+sym_group = LayerGroup()
 
 symops = np.array(sym_group.symops)
 mult_table = np.array(sym_group.mult_table)
@@ -75,13 +76,18 @@ def get_struct_from_lawx(G, L, A, W, X):
     X = X[np.nonzero(A)]
     W = W[np.nonzero(A)]
 
-    lattice = Lattice.from_parameters(*L)
+
     xs_list = [symmetrize_atoms(G, w, x) for w, x in zip(W, X)]
     as_list = [[A[idx] for _ in range(len(xs))] for idx, xs in enumerate(xs_list)]
     A_list = list(itertools.chain.from_iterable(as_list))
     X_list = list(itertools.chain.from_iterable(xs_list))
+    X_list += np.array([[0., 0., 0.5] for _ in range(len(X_list))])
+    X_list -= np.floor(X_list)
+    L[3:] = L[3:] * (180 / np.pi)
+    L[:3] = L[:3] * (len(X_list))**(1./3.)
+    lattice = Lattice.from_parameters(*L)
     struct = Structure(lattice, A_list, X_list)
-    return struct.as_dict()
+    return struct
 
 def main(args):
     input_path = args.output_path + f'output_{args.label}.csv'
@@ -109,10 +115,14 @@ def main(args):
 
     output_path = args.output_path + f'output_{args.label}_struct.csv'
 
-    data = pd.DataFrame()
-    data['cif'] = structures
-    data.to_csv(output_path, mode='a', index=False, header=True)
-
+    # data = pd.DataFrame()
+    # data['cif'] = structures
+    # data.to_csv(output_path, mode='a', index=False, header=True)
+    i = 0
+    for structure in structures:
+        xyz = XYZ(structure)
+        xyz.write_file(f'./{i}.xyz')
+        i += 1
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
@@ -121,3 +131,12 @@ if __name__ == '__main__':
     parser.add_argument('--num_io_process', type=int, default=40, help='number of process used in multiprocessing io')
     args = parser.parse_args()
     main(args)
+    
+    # xs = symmetrize_atoms(61, 4, [ 0., 0., -0.04737133])
+    # print(xs)
+    # L = [3.829, 3.829, 40.172, 90.0, 90.0, 90.0]
+    # A = [28, 8, 38, 17, 38, 8]
+    # W = [4, 6, 5, 4, 2, 1]
+    # X = [[ 0., 0., -0.04737133], [0., 0.5, 0.05508901], [0.5, 0.5, 0.09639814], [0., 0., -0.12889217], [0.5, 0.5, 0.], [0., 0., 0.]]
+    # structure = get_struct_from_lawx(61, np.array(L), np.array(A), np.array(W), np.array(X))
+    # print(structure)
