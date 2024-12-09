@@ -174,7 +174,15 @@ def process_one_c2db(file_path, atom_types, wyck_types, n_max, tol=0.1):
         wyckoff_symbol_list.append(wyckoff_symbol)
         ww.append(wyckoff_num[0])
 
-        print ('g, a, m, symbol, x:', g, atom_species[0], mult, wyckoff_symbol, positions)
+        print ('g, a, m, symbol, x:', g, atom_species[0], mult, wyckoff_num[0], wyckoff_symbol, positions)
+
+    ordered_idx = np.argsort(ww)
+    ww = np.array(ww)[ordered_idx]
+    aa = np.array(aa)[ordered_idx]
+    fc = np.array(fc)[ordered_idx]
+    wyckoff_symbol_list = np.array(wyckoff_symbol_list)[ordered_idx]
+    mult_list = np.array(mult_list)[ordered_idx]
+    atom_species_list = np.array(atom_species_list)[ordered_idx]
     
     natoms = sum(mult_list)
     l_pyxtal = xLattice.from_matrix(l)
