@@ -83,8 +83,6 @@ def get_struct_from_lawx(G, L, A, W, X):
     X_list = list(itertools.chain.from_iterable(xs_list))
     X_list += np.array([[0., 0., 0.5] for _ in range(len(X_list))])
     X_list -= np.floor(X_list)
-    L[3:] = L[3:] * (180 / np.pi)
-    L[:3] = L[:3] * (len(X_list))**(1./3.)
     lattice = Lattice.from_parameters(*L)
     struct = Structure(lattice, A_list, X_list)
     return struct
