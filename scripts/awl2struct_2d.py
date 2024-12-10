@@ -9,7 +9,7 @@ import itertools
 import argparse
 
 from pymatgen.core import Structure, Lattice
-from pymatgen.io.xyz import XYZ
+from pymatgen.io.cif import CifWriter
 from crystalformer.src.sym_group import LayerGroup
 
 sym_group = LayerGroup()
@@ -118,8 +118,8 @@ def main(args):
     # data.to_csv(output_path, mode='a', index=False, header=True)
     i = 0
     for structure in structures:
-        xyz = XYZ(structure)
-        xyz.write_file(f'./{i}.xyz')
+        cif_writer = CifWriter(structure)
+        cif_writer.write_file(args.output_path + f'output_{args.label}_{i}.cif')
         i += 1
 
 if __name__ == '__main__':

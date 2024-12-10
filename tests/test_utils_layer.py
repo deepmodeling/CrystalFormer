@@ -27,29 +27,46 @@ def test_utils(csv_file):
     mult_types = 18
     n_max = 27
 
-    crystal = read(csv_file + '/structure.xyz')
-    ase_adaptor = AseAtomsAdaptor()
-    struct = ase_adaptor.get_structure(crystal)
+    paths = os.walk(csv_file)
+    data_list = []
+    for path, _, file_list in paths:
+        for file_name in file_list:
+            if file_name == 'data.json':
+                data_list.append(os.path.join(path, file_name).replace('/data.json', ''))
+
+    
 
     # G, L, X, A, W = process_one_c2db(csv_file, atom_types, mult_types, n_max)
-    G, L, X, A, W = GLXYZAW_from_file(sym_group, csv_file, atom_types, mult_types, n_max)
-    g = G[0]
-    l = np.array(L[0])
-    x = np.array(X[0])
-    a = np.array(A[0])
-    w = np.array(W[0])
+    G, L, X, A, W = GLXYZAW_from_file(sym_group, csv_file, atom_types, mult_types, n_max, num_workers=128)
 
-    l[3:] = l[3:] * (180 / np.pi)
-    l[:3] = l[:3] * (len(a))**(1./3.)
-    
-    struct_converted = get_struct_from_lawx(g, l, a, w, x)
+    error_list = []
 
-    matcher = StructureMatcher()
-    isMatch = matcher.fit(struct, struct_converted)
+    for i in range(len(data_list)):
+        crystal = read(data_list[i] + '/structure.xyz')
+        ase_adaptor = AseAtomsAdaptor()
+        struct = ase_adaptor.get_structure(crystal)
 
-    return isMatch
+        g = G[i]
+        l = np.array(L[i])
+        x = np.array(X[i])
+        a = np.array(A[i])
+        w = np.array(W[i])
 
-if __name__ == '__main__':
-    for i in range(4784):
-        isMatch = test_utils(f'/Users/longli/Downloads/c2db_stab/{i}')
-        assert isMatch == True, f"Mat No.{i} error."
+        M = mult_table[g-1, w]
+        num_atoms = np.sum(M, axis=-1)
+        l[3:] = l[3:] * (180 / np.pi)
+        l[:3] = l[:3] * (num_atoms)**(1./3.)
+        
+        struct_converted = get_struct_from_lawx(g, l, a, w, x)
+
+        matcher = StructureMatcher(primitive_cell=False, attempt_supercell=True)
+        isMatch = matcher.fit(struct, struct_converted)
+        
+        if not isMatch:
+            error_list.append(data_list[i])
+
+    return error_list
+
+path = '/home/longlizheng/pycode/CrystalFormer_layer/c2db_stab'
+result = test_utils(path)
+print(result)
