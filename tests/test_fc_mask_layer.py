@@ -5,10 +5,10 @@ import numpy as np
 import jax.numpy as jnp
 from crystalformer.src.sym_group import *
 
-sym_group = SpaceGroup()
+sym_group = LayerGroup()
 
 
-df = pd.read_csv(os.path.join(datadir, 'wyckoff_list.csv'))
+df = pd.read_csv(os.path.join(datadir, 'layer_list.csv'))
 df['Wyckoff Positions'] = df['Wyckoff Positions'].apply(eval)  # convert string to list
 wyckoff_positions = df['Wyckoff Positions'].tolist()
 

@@ -2,13 +2,12 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-from crystalformer.src.wyckoff import fc_mask_table
-from crystalformer.src.von_mises import sample_von_mises
+from crystalformer.src.sym_group import *
 
 
-get_fc_mask = lambda g, w: jnp.logical_and((w>0)[:, None], fc_mask_table[g-1, w])
+def make_mcmc_step(params, n_max, atom_types, sym_group, atom_mask=None, constraints=None):
 
-def make_mcmc_step(params, n_max, atom_types, atom_mask=None, constraints=None):
+    get_fc_mask = lambda g, w: jnp.logical_and((w>0)[:, None], sym_group.fc_mask_table[g-1, w])
 
     if atom_mask is None or jnp.all(atom_mask == 0):
         atom_mask = jnp.ones((n_max, atom_types))
@@ -28,7 +27,7 @@ def make_mcmc_step(params, n_max, atom_types, atom_mask=None, constraints=None):
         return A
 
     @partial(jax.jit, static_argnums=0)
-    def mcmc(logp_fn, x_init, key, mc_steps, mc_width):
+    def mcmc(spacegroup, logp_fn, x_init, key, mc_steps, mc_width):
         """
             Markov Chain Monte Carlo sampling algorithm.
 
@@ -57,7 +56,7 @@ def make_mcmc_step(params, n_max, atom_types, atom_mask=None, constraints=None):
                 A_proposal = jnp.where(A == 0, A, _A)
 
                 fc_mask = jax.vmap(get_fc_mask, in_axes=(0, 0))(G, W)
-                _xyz = XYZ[:, i%n_max] + sample_von_mises(key_proposal_XYZ, 0, 1/mc_width**2, XYZ[:, i%n_max].shape)
+                _xyz = XYZ[:, i%n_max] + sym_group.sample_all_dim()(key_proposal_XYZ, 0, 1/mc_width**2, XYZ[:, i%n_max].shape)
                 _XYZ = XYZ.at[:, i%n_max].set(_xyz)
                 _XYZ -= jnp.floor(_XYZ)   # wrap to [0, 1)
                 XYZ_proposal = jnp.where(fc_mask, _XYZ, XYZ)
@@ -123,13 +122,13 @@ if __name__  == "__main__":
     dropout_rate = 0.3
 
     csv_file = '../data/mini.csv'
-    G, L, XYZ, A, W = GLXYZAW_from_file(csv_file, atom_types, wyck_types, n_max)
+    G, L, XYZ, A, W = GLXYZAW_from_file(SpaceGroup(), csv_file, atom_types, wyck_types, n_max)
 
     key = jax.random.PRNGKey(42)
 
-    params, transformer = make_transformer(key, Nf, Kx, Kl, n_max, 128, 4, 4, 8, 16, 16, atom_types, wyck_types, dropout_rate) 
+    params, transformer = make_transformer(SpaceGroup(), key, Nf, Kx, Kl, n_max, 128, 4, 4, 8, 16, 16, atom_types, wyck_types, dropout_rate) 
  
-    loss_fn, logp_fn = make_loss_fn(n_max, atom_types, wyck_types, Kx, Kl, transformer)
+    loss_fn, logp_fn = make_loss_fn(SpaceGroup(), n_max, atom_types, wyck_types, Kx, Kl, transformer)
 
     # MCMC sampling test
     mc_steps = 21
@@ -139,11 +138,11 @@ if __name__  == "__main__":
     value = jax.jit(logp_fn, static_argnums=7)(params, key, *x_init, False)
 
     jnp.set_printoptions(threshold=jnp.inf)
-    mcmc = make_mcmc_step(params, n_max=n_max, atom_types=atom_types)
+    mcmc = make_mcmc_step(params, n_max=n_max, atom_types=atom_types, sym_group=SpaceGroup())
 
     for i in range(5):
         key, subkey = jax.random.split(key)
-        x, acc = mcmc(logp_fn, x_init=x_init, key=subkey, mc_steps=mc_steps, mc_width=mc_width)
+        x, acc = mcmc(spacegroup, logp_fn, x_init=x_init, key=subkey, mc_steps=mc_steps, mc_width=mc_width)
         print(i, acc)
 
     print("check if the atom type is changed")

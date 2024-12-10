@@ -6,16 +6,16 @@ from crystalformer.src.sym_group import *
 
 def test_autoregressive():
     atom_types = 119
-    wyck_types = 28
+    wyck_types = 19
     Nf = 8
     n_max = 21
     Kx = 16 
     Kl = 8
     dim = 3
     dropout_rate = 0.0
-    sym_group = SpaceGroup()
+    sym_group = LayerGroup()
 
-    csv_file = os.path.join(datadir, '../../data/mini.csv')
+    csv_file = './c2db'
     G, L, X, A, W = GLXYZAW_from_file(sym_group, csv_file, atom_types, wyck_types, n_max, dim)
         
     @jax.vmap

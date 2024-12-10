@@ -3,7 +3,6 @@ import jax.numpy as jnp
 from functools import partial
 
 from crystalformer.src.wyckoff import fc_mask_table
-from crystalformer.src.von_mises import sample_von_mises
 from crystalformer.src.lattice import symmetrize_lattice
 
 get_fc_mask = lambda g, w: jnp.logical_and((w>0)[:, None], fc_mask_table[g-1, w])
@@ -64,7 +63,7 @@ def make_mcmc_step(base_params, n_max, atom_types, atom_mask=None, constraints=N
         return A
         
     @partial(jax.jit, static_argnums=0)
-    def mcmc(logp_fn, x_init, key, mc_steps, mc_width, temp):
+    def mcmc(spacegroup, logp_fn, x_init, key, mc_steps, mc_width, temp):
         """
             Markov Chain Monte Carlo sampling algorithm.
 
@@ -141,7 +140,7 @@ def make_mcmc_step(base_params, n_max, atom_types, atom_mask=None, constraints=N
                 A_proposal = jnp.where(A == 0, A, _A)
 
                 fc_mask = jax.vmap(get_fc_mask, in_axes=(0, 0))(G, W)
-                _xyz = XYZ[:, i%n_max] + sample_von_mises(key_proposal_XYZ, 0, 1/mc_width**2, XYZ[:, i%n_max].shape)
+                _xyz = XYZ[:, i%n_max] + spacegroup.sample_von_mises(key_proposal_XYZ, 0, 1/mc_width**2, XYZ[:, i%n_max].shape)
                 _XYZ = XYZ.at[:, i%n_max].set(_xyz)
                 _XYZ -= jnp.floor(_XYZ)   # wrap to [0, 1)
                 XYZ_proposal = jnp.where(fc_mask, _XYZ, XYZ)

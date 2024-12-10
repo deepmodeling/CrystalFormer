@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: crystalformer
+Version: 0.3
+Summary: CrystalFormer is a transformer-based autoregressive model specifically designed for space group-controlled generation of crystalline materials.
+Home-page: https://github.com/deepmodeling/CrystalFormer
+Author: iopcompphys
+Author-email: zdcao@iphy.ac.cn, wanglei@iphy.ac.cn
+License: Apache License
+Keywords: Crystal Generation
+Platform: any
+License-File: LICENSE

@@ -7,9 +7,8 @@ import haiku as hk
 import numpy as np
 
 from crystalformer.src.attention import MultiHeadAttention
-from crystalformer.src.wyckoff import wmax_table, dof0_table
 
-def make_transformer(key, Nf, Kx, Kl, n_max, h0_size, num_layers, num_heads, key_size, model_size, embed_size, atom_types, wyck_types, dropout_rate, widening_factor=4, sigmamin=1e-3):
+def make_transformer(sym_group, key, Nf, Kx, Kl, n_max, h0_size, num_layers, num_heads, key_size, model_size, embed_size, atom_types, wyck_types, dropout_rate, widening_factor=4, sigmamin=1e-3):
     
     coord_types = 3*Kx
     lattice_types = Kl+2*6*Kl
@@ -44,7 +43,7 @@ def make_transformer(key, Nf, Kx, Kl, n_max, h0_size, num_layers, num_heads, key
         n = XYZ.shape[0]
         X, Y, Z = XYZ[:, 0], XYZ[:, 1], XYZ[:,2]
 
-        w_max = wmax_table[G-1]
+        w_max = sym_group.wmax_table[G-1]
         initializer = hk.initializers.TruncatedNormal(0.01)
         
         g_embeddings = hk.get_parameter('g_embeddings', [230, embed_size], init=initializer)[G-1]
@@ -167,7 +166,7 @@ def make_transformer(key, Nf, Kx, Kl, n_max, h0_size, num_layers, num_heads, key
         # while for Wyckoff points with zero dof it is even stronger W_0 < W_1 
         w_mask_less_equal = jnp.arange(1, wyck_types).reshape(1, wyck_types-1) < W[:, None]
         w_mask_less = jnp.arange(1, wyck_types).reshape(1, wyck_types-1) <= W[:, None]
-        w_mask = jnp.where((dof0_table[G-1, W])[:, None], w_mask_less, w_mask_less_equal) # (n, wyck_types-1)
+        w_mask = jnp.where((sym_group.dof0_table[G-1, W])[:, None], w_mask_less, w_mask_less_equal) # (n, wyck_types-1)
 
         w_mask = jnp.concatenate([jnp.zeros((n, 1)), w_mask], axis=1) # (n, wyck_types)
         w_logit = w_logit - jnp.where(w_mask, 1e10, 0.0)

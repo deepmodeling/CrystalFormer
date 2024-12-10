@@ -1,8 +1,8 @@
 from config import *
 from crystalformer.src.sym_group import *
-symops = SpaceGroup().symops
-wmax_table = SpaceGroup().wmax_table
-mult_table = SpaceGroup().mult_table
+symops = LayerGroup().symops
+wmax_table = LayerGroup().wmax_table
+mult_table = LayerGroup().mult_table
 
 def test_symops():
     def project_x(g, w, x, idx):
@@ -40,18 +40,18 @@ def test_symops():
     # these two tests shows that depending on the z coordinate (which is supposed to be rationals)
     # the WP can be recoginized differently, resulting different x
     # this motivate that we either predict idx in [1, m], or we predict all fc once there is a continuous dof
-    g = 167 
-    w = jnp.array(5)
-    idx = jnp.array(5)
-    x = jnp.array([0.123, 0.123, 0.75])
+    g = 67 
+    w = jnp.array(7)
+    idx = jnp.array(0)
+    x = jnp.array([0.123, 0.877, 0.0])
     y = project_x(g, w, x, idx)
-    assert jnp.allclose(y, jnp.array([0.123, 0.123, 0.75]))
+    assert jnp.allclose(y, jnp.array([0.123, 0.877, 0.0]))
 
     # x = jnp.array([0.123, 0.123, 0.25])
     # y = project_x(g, w, x, idx)
     # assert jnp.allclose(y, jnp.array([0.877, 0.877, 0.75]))
 
-    # g = 225
+    # g = 25
     # w = jnp.array(5)
     # x = jnp.array([0., 0., 0.7334])
 
@@ -63,7 +63,7 @@ def test_symops():
     # y = project_x(g, w, x, idx)
     # assert jnp.allclose(y, jnp.array([0., 1.0-0.7334, 0.]))
     
-    # g = 166 
+    # g = 66 
     # w = jnp.array(8)
     # x = jnp.array([0.1, 0.2, 0.3])
 
@@ -83,5 +83,5 @@ def test_sample_top_p():
     k = jax.jit(sample_top_p, static_argnums=2)(key, logits, p, temperature)
     print (k)
 
-# test_sample_top_p()
+test_sample_top_p()
 test_symops()

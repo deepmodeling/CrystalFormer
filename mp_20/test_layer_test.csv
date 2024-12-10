@@ -1,0 +1,36 @@
+,material_id,formation_energy_per_atom,band_gap,pretty_formula,e_above_hull,elements,cif,spacegroup.number
+6000,mp-10009,-0.5750923537499997,0.8979999999999997,GaTe,0.0,"['Ga', 'Te']","# generated using pymatgen
+data_GaTe
+_symmetry_space_group_name_H-M   'P 1'
+_cell_length_a   4.13459945
+_cell_length_b   4.13459945
+_cell_length_c   18.42557000
+_cell_angle_alpha   90.00000000
+_cell_angle_beta   90.00000000
+_cell_angle_gamma   119.99999121
+_symmetry_Int_Tables_number   1
+_chemical_formula_structural   GaTe
+_chemical_formula_sum   'Ga4 Te4'
+_cell_volume   272.78374478
+_cell_formula_units_Z   4
+loop_
+ _symmetry_equiv_pos_site_id
+ _symmetry_equiv_pos_as_xyz
+  1  'x, y, z'
+loop_
+ _atom_site_type_symbol
+ _atom_site_label
+ _atom_site_symmetry_multiplicity
+ _atom_site_fract_x
+ _atom_site_fract_y
+ _atom_site_fract_z
+ _atom_site_occupancy
+  Ga  Ga0  1  0.33333300  0.66666700  0.18295900  1
+  Ga  Ga1  1  0.66666700  0.33333300  0.68295900  1
+  Ga  Ga2  1  0.66666700  0.33333300  0.81704100  1
+  Ga  Ga3  1  0.33333300  0.66666700  0.31704100  1
+  Te  Te4  1  0.33333300  0.66666700  0.88620400  1
+  Te  Te5  1  0.66666700  0.33333300  0.38620400  1
+  Te  Te6  1  0.66666700  0.33333300  0.11379600  1
+  Te  Te7  1  0.33333300  0.66666700  0.61379600  1
+",19
