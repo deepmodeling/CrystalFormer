@@ -3,7 +3,7 @@
   <h2> Crystal Generation with Space Group Informed Transformer</h2> 
 </div>
 
-[![arXiv](https://img.shields.io/badge/arXiv-2403.15734-b31b1b.svg)](https://arxiv.org/abs/2403.15734)
+[![arXiv](https://img.shields.io/badge/arXiv-2403.15734-b31b1b.svg)](https://arxiv.org/abs/2403.15734) [![arXiv](https://img.shields.io/badge/arXiv-2504.02367-b31b1b.svg)](https://arxiv.org/abs/2504.02367)
 
 _CrystalFormer_ is a transformer-based autoregressive model specifically designed for space group-controlled generation of crystalline materials. The space group symmetry significantly simplifies the
 crystal space, which is crucial for data and compute efficient generative modeling of crystalline materials.
