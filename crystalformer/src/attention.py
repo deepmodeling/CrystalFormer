@@ -24,6 +24,9 @@ import numpy as np
 
 import haiku as hk
 
+from crystalformer.src.rope import sine_table, apply_rotary_embedding
+# from crystalformer.src.rope import RelativePosition
+
 
 class MultiHeadAttention(hk.Module):
   """Multi-headed attention (MHA) module.
@@ -119,9 +122,19 @@ class MultiHeadAttention(hk.Module):
     key_heads = projection(key, self.key_size, "key")  # [T, H, K]
     value_heads = projection(value, self.value_size, "value")  # [T, H, V]
 
+    # Rotary Positional Embeddings
+    sin, cos = sine_table(features=self.key_size, length=sequence_length)
+    query_heads, key_heads = apply_rotary_embedding(query_heads, key_heads, cos, sin)
+
+    # relative_position = RelativePosition(max_relative_position=sequence_length)
+
     # Compute attention weights.
     attn_logits = jnp.einsum("...thd,...Thd->...htT", query_heads, key_heads)
     attn_logits = attn_logits / np.sqrt(self.key_size).astype(key.dtype)
+    
+    # # Add relative position embeddings
+    # attn_logits += relative_position(sequence_length, sequence_length)
+
     if mask is not None:
       if mask.ndim != attn_logits.ndim:
         raise ValueError(

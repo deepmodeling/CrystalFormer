@@ -143,6 +143,29 @@ def GLXYZAW_from_file(csv_file, atom_types, wyck_types, n_max, num_workers=1):
       A: atom types
       W: wyckoff letters
     """
+    if csv_file.endswith('.lmdb'):
+        import lmdb
+        import pickle
+        # read from lmdb
+        env = lmdb.open(
+            csv_file,
+            subdir=False,
+            readonly=True,
+            lock=False,
+            readahead=False,
+            meminit=False,
+        )
+
+        contents = env.begin().cursor().iternext()
+        data = tuple([pickle.loads(value) for _, value in contents])
+        G, L, XYZ, A, W = data
+        print('G:', G.shape)
+        print('L:', L.shape)
+        print('XYZ:', XYZ.shape)
+        print('A:', A.shape)
+        print('W:', W.shape)
+        return G, L, XYZ, A, W
+
     data = pd.read_csv(csv_file)
     cif_strings = data['cif']
 

@@ -6,7 +6,7 @@ import os
 from functools import partial
 
 import sys
-sys.path.append("../src/")
+sys.path.append("./crystalformer/src/")
 import checkpoint
 from elements import element_list 
 

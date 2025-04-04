@@ -95,7 +95,7 @@ def _von_mises_centered(key, concentration, shape, dtype):
         init_val=(jnp.array(0), key, init_done, init_u, init_w),
     )
 
-    return jnp.sign(u) * jnp.arccos(w)
+    return jnp.sign(u) * jnp.arccos(jnp.clip(w, -1.0, 1.0))
 
 def von_mises_logpdf(x, loc, concentration):
     '''

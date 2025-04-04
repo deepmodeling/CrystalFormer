@@ -17,7 +17,7 @@ def test_utils():
     mult_types = 10
     n_max = 10
     dim = 3
-    csv_file = os.path.join(datadir, '../../data/mini.csv')
+    csv_file = os.path.join(datadir, '../../mini.csv')
 
     G, L, X, A, W = GLXYZAW_from_file(csv_file, atom_types, mult_types, n_max, dim)
     

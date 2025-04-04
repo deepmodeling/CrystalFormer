@@ -70,9 +70,10 @@ def sample_crystal(key, transformer, params, n_max, batchsize, atom_types, wyck_
         w_logit = w_logit[:, :wyck_types]
     
         key, subkey = jax.random.split(key)
-        if w_mask is not None:
-            w_logit = w_logit.at[:, w_mask[i]].set(w_logit[:, w_mask[i]] + 1e10)
         w = sample_top_p(subkey, w_logit, top_p, temperature)
+        if w_mask is not None:
+            # replace w with the w_mask[i] if it is not None
+            w = w.at[:].set(w_mask[i])
         W = W.at[:, i].set(w)
 
         # (2) A
@@ -80,7 +81,7 @@ def sample_crystal(key, transformer, params, n_max, batchsize, atom_types, wyck_
         a_logit = h_al[:, :atom_types]
     
         key, subkey = jax.random.split(key)
-        a_logit = a_logit + jnp.where(atom_mask[i, :], 1e10, 0.0) # enhance the probability of masked atoms (do not need to normalize since we only use it for sampling, not computing logp)
+        a_logit = a_logit + jnp.where(atom_mask[i, :], 0.0, -1e10) # enhance the probability of masked atoms (do not need to normalize since we only use it for sampling, not computing logp)
         _temp = jax.lax.cond(i==0,
                                 true_fun=lambda x: jnp.array(T1, dtype=float),
                                 false_fun=lambda x: temperature,

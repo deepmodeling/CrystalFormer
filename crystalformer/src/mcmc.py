@@ -2,11 +2,9 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-from crystalformer.src.wyckoff import fc_mask_table
 from crystalformer.src.von_mises import sample_von_mises
+from crystalformer.src.sample import project_xyz
 
-
-get_fc_mask = lambda g, w: jnp.logical_and((w>0)[:, None], fc_mask_table[g-1, w])
 
 def make_mcmc_step(params, n_max, atom_types, atom_mask=None, constraints=None):
 
@@ -56,11 +54,11 @@ def make_mcmc_step(params, n_max, atom_types, atom_mask=None, constraints=None):
                 _A = update_A(i%n_max, A, _a, constraints)
                 A_proposal = jnp.where(A == 0, A, _A)
 
-                fc_mask = jax.vmap(get_fc_mask, in_axes=(0, 0))(G, W)
                 _xyz = XYZ[:, i%n_max] + sample_von_mises(key_proposal_XYZ, 0, 1/mc_width**2, XYZ[:, i%n_max].shape)
+                _xyz = jax.vmap(project_xyz, in_axes=(0, 0, 0, None))(G, W[:, i%n_max], _xyz, 0)
                 _XYZ = XYZ.at[:, i%n_max].set(_xyz)
                 _XYZ -= jnp.floor(_XYZ)   # wrap to [0, 1)
-                XYZ_proposal = jnp.where(fc_mask, _XYZ, XYZ)
+                XYZ_proposal = _XYZ
                 x_proposal = (G, L, XYZ_proposal, A_proposal, W)
 
                 logp_w, logp_xyz, logp_a, _ = logp_fn(params, key_logp, *x_proposal, False)
@@ -122,7 +120,7 @@ if __name__  == "__main__":
     Kl  = 4
     dropout_rate = 0.3
 
-    csv_file = '../data/mini.csv'
+    csv_file = '../../data/mini.csv'
     G, L, XYZ, A, W = GLXYZAW_from_file(csv_file, atom_types, wyck_types, n_max)
 
     key = jax.random.PRNGKey(42)

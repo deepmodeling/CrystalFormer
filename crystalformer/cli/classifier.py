@@ -20,8 +20,36 @@ def get_labels(csv_file, label_col):
     labels = jnp.array(labels, dtype=float)
     return labels
 
+def GLXYZAW_from_sample(spg, test_path):
+    ### read from generated data
+    from ast import literal_eval
+    from crystalformer.src.wyckoff import mult_table
 
-if __name__  == "__main__":
+    test_data = pd.read_csv(test_path)
+    L, XYZ, A, W = test_data['L'], test_data['X'], test_data['A'], test_data['W']
+    L = L.apply(lambda x: literal_eval(x))
+    XYZ = XYZ.apply(lambda x: literal_eval(x))
+    A = A.apply(lambda x: literal_eval(x))
+    W = W.apply(lambda x: literal_eval(x))
+
+    # convert array of list to numpy ndarray
+    G = jnp.array([spg]*len(L))
+    L = jnp.array(L.tolist())
+    XYZ = jnp.array(XYZ.tolist())
+    A = jnp.array(A.tolist())
+    W = jnp.array(W.tolist())
+
+    M = jax.vmap(lambda g, w: mult_table[g-1, w], in_axes=(0, 0))(G, W) # (batchsize, n_max)
+    num_atoms = jnp.sum(M, axis=1)
+    length, angle = jnp.split(L, 2, axis=-1)
+    length = length/num_atoms[:, None]**(1/3)
+    angle = angle * (jnp.pi / 180) # to rad
+    L = jnp.concatenate([length, angle], axis=-1)
+
+    return G, L, XYZ, A, W
+
+
+def main():
 
     import argparse
     parser = argparse.ArgumentParser(description='')
@@ -30,6 +58,7 @@ if __name__  == "__main__":
     group.add_argument('--train_path', default='/data/zdcao/crystal_gpt/dataset/mp_20/train.csv', help='')
     group.add_argument('--valid_path', default='/data/zdcao/crystal_gpt/dataset/mp_20/val.csv', help='')
     group.add_argument('--test_path', default='/data/zdcao/crystal_gpt/dataset/mp_20/test.csv', help='')
+    group.add_argument('--spacegroup', type=int, default=None, help='The space group number')
     group.add_argument('--property', default='band_gap', help='The property to predict')
     group.add_argument('--num_io_process', type=int, default=40, help='number of io processes')
 
@@ -82,11 +111,13 @@ if __name__  == "__main__":
         valid_data = (*valid_data, valid_labels)
     
     else:
-        test_data = GLXYZAW_from_file(args.test_path, args.atom_types,
-                                      args.wyck_types, args.n_max, args.num_io_process)
-        test_labels = get_labels(args.test_path, args.property)
-
-        test_data = (*test_data, test_labels)
+        if args.spacegroup == None:
+            G, L, XYZ, A, W = GLXYZAW_from_file(args.test_path, args.atom_types,
+                                        args.wyck_types, args.n_max, args.num_io_process)
+            test_labels = get_labels(args.test_path, args.property)
+        
+        else:
+            G, L, XYZ, A, W = GLXYZAW_from_sample(args.spacegroup, args.test_path)
 
     ################### Model #############################
     transformer_params, state, transformer = make_transformer(key, args.Nf, args.Kx, args.Kl, args.n_max, 
@@ -146,7 +177,7 @@ if __name__  == "__main__":
         params, opt_state = train(subkey, optimizer, opt_state, loss_fn, params, state, epoch_finished, args.epochs, args.batchsize, train_data, valid_data, output_path)
 
     elif args.optimizer == 'none':
-        G, L, XYZ, A, W, labels = test_data
+        
         y = jax.vmap(forward_fn,
              in_axes=(None, None, None, 0, 0, 0, 0, 0, None)
              )(params, state, key, G, L, XYZ, A, W, False)
@@ -155,3 +186,7 @@ if __name__  == "__main__":
 
     else:
         raise NotImplementedError(f"Optimizer {args.optimizer} not implemented")
+
+
+if __name__ == "__main__":
+    main()

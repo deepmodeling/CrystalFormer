@@ -1,5 +1,6 @@
 import jax
 import jax.numpy as jnp
+from crystalformer.src.wyckoff import mult_table
 
 def make_lattice_mask():
     '''
@@ -35,6 +36,24 @@ def symmetrize_lattice(spacegroup, lattice):
     L = jnp.where(spacegroup <= 194, L, jnp.array([a, a, a, 90., 90., 90.]))
 
     return L
+
+
+def norm_lattice(G, W, L):
+    """
+    normalize the lattice lengths by the number of atoms in the unit cell,
+    change the lattice angles to radian
+    a -> a/n_atoms^(1/3)
+    angle -> angle * pi/180
+    """
+    M = jax.vmap(lambda g, w: mult_table[g-1, w], in_axes=(0, 0))(G, W) # (batchsize, n_max)
+    num_atoms = jnp.sum(M, axis=1)
+    length, angle = jnp.split(L, 2, axis=-1)
+    length = length/num_atoms[:, None]**(1/3)
+    angle = angle * (jnp.pi / 180) # to rad
+    L = jnp.concatenate([length, angle], axis=-1)
+    
+    return L
+
 
 if __name__ == '__main__':
     

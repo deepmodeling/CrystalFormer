@@ -83,6 +83,10 @@ def make_loss_fn(n_max, atom_types, wyck_types, Kx, Kl, transformer, lamb_a=1.0,
         
         return logp_w, logp_xyz, logp_a, logp_l
 
+    # https://github.com/google/jax/blob/cd6eeea9e3e8652e17fdbb1575c9a63fcd558d6b/jax/_src/ad_checkpoint.py#L73
+    # This is a useful heuristic for transformers.
+    # @partial(jax.checkpoint, policy=jax.checkpoint_policies.offload_dot_with_no_batch_dims, static_argnums=(7,))
+    # @partial(jax.checkpoint, policy=jax.checkpoint_policies.dots_with_no_batch_dims_saveable, static_argnums=(7,))
     def loss_fn(params, key, G, L, XYZ, A, W, is_train):
         logp_w, logp_xyz, logp_a, logp_l = logp_fn(params, key, G, L, XYZ, A, W, is_train)
         loss_w = -jnp.mean(logp_w)

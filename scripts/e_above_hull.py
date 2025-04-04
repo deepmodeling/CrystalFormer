@@ -89,7 +89,8 @@ def get_strutures_ehull(mpr, structures, energies):
 def main(args):
     data = pd.read_csv(os.path.join(args.restore_path, args.filename))
     cif_strings = data["relaxed_cif"]
-    structures = [Structure.from_str(cif, fmt="cif") for cif in cif_strings]
+    try: structures = [Structure.from_str(cif, fmt="cif") for cif in cif_strings]
+    except: structures = [Structure.from_dict(eval(cif)) for cif in cif_strings]
     mpr = MPRester(args.api_key)
 
     unrelaxed_ehull_list = get_strutures_ehull(mpr, structures, data["initial_energy"])

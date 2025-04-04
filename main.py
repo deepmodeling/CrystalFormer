@@ -1,11 +1,11 @@
-import jax 
-#jax.config.update("jax_enable_x64", True)
+import jax
 import jax.numpy as jnp 
 from jax.flatten_util import ravel_pytree
 import optax
 import os
 import multiprocessing
 import math
+import pandas as pd
 
 from crystalformer.src.utils import GLXYZAW_from_file, letter_to_number
 from crystalformer.src.elements import element_dict, element_list
@@ -28,6 +28,7 @@ group.add_argument('--lr_decay', type=float, default=0.0, help='lr decay')
 group.add_argument('--weight_decay', type=float, default=0.0, help='weight decay')
 group.add_argument('--clip_grad', type=float, default=1.0, help='clip gradient')
 group.add_argument("--optimizer", type=str, default="adam", choices=["none", "adam", "adamw"], help="optimizer type")
+group.add_argument("--val_interval", type=int, default=100, help="validation interval")
 
 group.add_argument("--folder", default="../data/", help="the folder to save data")
 group.add_argument("--restore_path", default=None, help="checkpoint path or file")
@@ -47,7 +48,8 @@ group.add_argument('--num_heads', type=int, default=16, help='The number of head
 group.add_argument('--key_size', type=int, default=64, help='The key size')
 group.add_argument('--model_size', type=int, default=64, help='The model size')
 group.add_argument('--embed_size', type=int, default=32, help='The enbedding size')
-group.add_argument('--dropout_rate', type=float, default=0.5, help='The dropout rate')
+group.add_argument('--dropout_rate', type=float, default=0.5, help='The dropout rate for MLP')
+group.add_argument('--attn_dropout', type=float, default=0.1, help='The dropout rate for attention')
 
 group = parser.add_argument_group('loss parameters')
 group.add_argument("--lamb_a", type=float, default=1.0, help="weight for the a part relative to fc")
@@ -167,8 +169,8 @@ params, transformer = make_transformer(key, args.Nf, args.Kx, args.Kl, args.n_ma
                                       args.transformer_layers, args.num_heads, 
                                       args.key_size, args.model_size, args.embed_size, 
                                       args.atom_types, args.wyck_types,
-                                      args.dropout_rate)
-transformer_name = 'Nf_%d_Kx_%d_Kl_%d_h0_%d_l_%d_H_%d_k_%d_m_%d_e_%d_drop_%g'%(args.Nf, args.Kx, args.Kl, args.h0_size, args.transformer_layers, args.num_heads, args.key_size, args.model_size, args.embed_size, args.dropout_rate)
+                                      args.dropout_rate, args.attn_dropout)
+transformer_name = 'Nf_%d_Kx_%d_Kl_%d_h0_%d_l_%d_H_%d_k_%d_m_%d_e_%d_drop_%g_%g'%(args.Nf, args.Kx, args.Kl, args.h0_size, args.transformer_layers, args.num_heads, args.key_size, args.model_size, args.embed_size, args.dropout_rate, args.attn_dropout)
 
 print ("# of transformer params", ravel_pytree(params)[0].size) 
 
@@ -216,38 +218,59 @@ if args.optimizer != "none":
 
     opt_state = optimizer.init(params)
     try:
-        opt_state.update(ckpt["opt_state"])
+        opt_state = ckpt["opt_state"]
     except: 
         print ("failed to update opt_state from checkpoint")
         pass 
  
     print("\n========== Start training ==========")
-    params, opt_state = train(key, optimizer, opt_state, loss_fn, params, epoch_finished, args.epochs, args.batchsize, train_data, valid_data, output_path)
+    params, opt_state = train(key, optimizer, opt_state, loss_fn, params, epoch_finished, args.epochs, args.batchsize, train_data, valid_data, output_path, args.val_interval)
 
 else:
     pass
 
-    print("\n========== Calculate the loss of test dataset ==========")
+    print("\n========== Print out some test data for the given space group ==========")
     import numpy as np 
     np.set_printoptions(threshold=np.inf)
 
-    test_G, test_L, test_XYZ, test_A, test_W = test_data
-    print (test_G.shape, test_L.shape, test_XYZ.shape, test_A.shape, test_W.shape)
-    test_loss = 0
-    num_samples = len(test_L)
-    num_batches = math.ceil(num_samples / args.batchsize)
-    for batch_idx in range(num_batches):
-        start_idx = batch_idx * args.batchsize
-        end_idx = min(start_idx + args.batchsize, num_samples)
-        G, L, XYZ, A, W = test_G[start_idx:end_idx], \
-                          test_L[start_idx:end_idx], \
-                          test_XYZ[start_idx:end_idx], \
-                          test_A[start_idx:end_idx], \
-                          test_W[start_idx:end_idx]
-        loss, _ = jax.jit(loss_fn, static_argnums=7)(params, key, G, L, XYZ, A, W, False)
-        test_loss += loss
-    test_loss = test_loss / num_batches
-    print ("evaluating loss on test data:" , test_loss)
+    G, L, XYZ, A, W = test_data
+    print (G.shape, L.shape, XYZ.shape, A.shape, W.shape)
+
+    idx = jnp.where(G==args.spacegroup,size=5)
+    G = G[idx]
+    L = L[idx]
+    XYZ = XYZ[idx]
+    A = A[idx]
+    W = W[idx]
+    
+    num_sites = jnp.sum(A!=0, axis=1)
+    print ("num_sites:", num_sites)
+    @jax.vmap
+    def lookup(G, W):
+        return mult_table[G-1, W] # (n_max, )
+    M = lookup(G, W) # (batchsize, n_max)
+    num_atoms = M.sum(axis=-1)
+    print ("num_atoms:", num_atoms)
+
+    print ("G:", G)
+    print ("A:\n", A)
+    for a in A: 
+       print([element_list[i] for i in a])
+    print ("W:\n",W)
+    print ("XYZ:\n",XYZ)
+
+    outputs = jax.vmap(transformer, (None, None, 0, 0, 0, 0, 0, None), (0))(params, key, G, XYZ, A, W, M, False)
+    print ("outputs.shape", outputs.shape)
+
+    h_al = outputs[:, 1::5, :] # (:, n_max, :)
+    a_logit = h_al[:, :, :args.atom_types]
+    l_logit, mu, sigma = jnp.split(h_al[jnp.arange(h_al.shape[0]), num_sites, 
+                                       args.atom_types:args.atom_types+args.Kl+2*6*args.Kl], 
+                                       [args.Kl, args.Kl+6*args.Kl], axis=-1)
+    print ("L:\n",L)
+    print ("exp(l_logit):\n", jnp.exp(l_logit))
+    print ("mu:\n", mu.reshape(-1, args.Kl, 6))
+    print ("sigma:\n", sigma.reshape(-1, args.Kl, 6))
 
     print("\n========== Start sampling ==========")
     jax.config.update("jax_enable_x64", True) # to get off compilation warning, and to prevent sample nan lattice 
@@ -261,10 +284,11 @@ else:
     else:
         T1 = args.temperature
 
-    mc_steps = args.nsweeps * args.n_max
-    print("mc_steps", mc_steps)
-    mcmc = make_mcmc_step(params, n_max=args.n_max, atom_types=args.atom_types, atom_mask=atom_mask, constraints=constraints)
-    update_lattice = make_update_lattice(transformer, params, args.atom_types, args.Kl, args.top_p, args.temperature)
+    if args.mcmc:
+        mc_steps = args.nsweeps * args.n_max
+        print("mc_steps", mc_steps)
+        mcmc = make_mcmc_step(params, n_max=args.n_max, atom_types=args.atom_types, atom_mask=atom_mask, constraints=constraints)
+        update_lattice = make_update_lattice(transformer, params, args.atom_types, args.Kl, args.top_p, args.temperature)
 
     num_batches = math.ceil(args.num_samples / args.batchsize)
     name, extension = args.output_filename.rsplit('.', 1)
@@ -299,7 +323,6 @@ else:
 
         # output L, X, A, W, M, AW to csv file
         # output logp_w, logp_xyz, logp_a, logp_l to csv file
-        import pandas as pd
         data = pd.DataFrame()
         data['L'] = np.array(L).tolist()
         data['X'] = np.array(XYZ).tolist()

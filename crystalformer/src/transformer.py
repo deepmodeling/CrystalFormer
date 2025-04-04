@@ -9,7 +9,7 @@ import numpy as np
 from crystalformer.src.attention import MultiHeadAttention
 from crystalformer.src.wyckoff import wmax_table, dof0_table
 
-def make_transformer(key, Nf, Kx, Kl, n_max, h0_size, num_layers, num_heads, key_size, model_size, embed_size, atom_types, wyck_types, dropout_rate, widening_factor=4, sigmamin=1e-3):
+def make_transformer(key, Nf, Kx, Kl, n_max, h0_size, num_layers, num_heads, key_size, model_size, embed_size, atom_types, wyck_types, dropout_rate, attn_dropout=0.1, widening_factor=4, sigmamin=1e-3):
     
     coord_types = 3*Kx
     lattice_types = Kl+2*6*Kl
@@ -113,9 +113,9 @@ def make_transformer(key, Nf, Kx, Kl, n_max, h0_size, num_layers, num_heads, key
                              ], axis=1) # (n, 5, model_size)
         h = h.reshape(5*n, -1)                                         # (5*n, model_size)
 
-        positional_embeddings = hk.get_parameter(
-                        'positional_embeddings', [5*n_max, model_size], init=initializer)
-        h = h + positional_embeddings[:5*n, :]
+        # positional_embeddings = hk.get_parameter(
+        #                 'positional_embeddings', [5*n_max, model_size], init=initializer)
+        # h = h + positional_embeddings[:5*n, :]
 
         del hW
         del hA
@@ -128,7 +128,7 @@ def make_transformer(key, Nf, Kx, Kl, n_max, h0_size, num_layers, num_heads, key
                                                key_size=key_size,
                                                model_size=model_size,
                                                w_init =initializer, 
-                                               dropout_rate =dropout_rate
+                                               dropout_rate = attn_dropout
                                               )
             h_norm = _layer_norm(h)
             h_attn = attn_block(h_norm, h_norm, h_norm, 
@@ -178,7 +178,7 @@ def make_transformer(key, Nf, Kx, Kl, n_max, h0_size, num_layers, num_heads, key
                 [ jnp.where(W==0, jnp.ones((n)), jnp.zeros((n))).reshape(n, 1), 
                   jnp.zeros((n, wyck_types-1))
                 ], axis = 1 )  # (n, wyck_types) mask = 1 for those locations to place pad atoms of type 0
-        w_logit = w_logit + jnp.where(w_mask, 1e10, 0.0)
+        w_logit = w_logit + jnp.where(w_mask, 0.0, -1e10)
         w_logit -= jax.scipy.special.logsumexp(w_logit, axis=1)[:, None] # normalization
 
         # (3) mask out unavaiable position after w_max for the given spacegroup

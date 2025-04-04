@@ -17,7 +17,7 @@ from crystalformer.src.loss import make_loss_fn
 from crystalformer.src.transformer import make_transformer
 
 
-if __name__  == "__main__":
+def main():
 
     import argparse
     parser = argparse.ArgumentParser(description='')
@@ -248,3 +248,7 @@ if __name__  == "__main__":
     data.to_csv(filename, mode='a', index=False, header=header)
 
     print ("Wrote samples to %s"%filename)
+
+
+if __name__  == "__main__":
+    main()

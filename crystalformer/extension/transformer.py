@@ -184,7 +184,7 @@ def make_transformer(key, Nf, Kx, Kl, n_max, h0_size, num_layers, num_heads, key
                 [ jnp.where(W==0, jnp.ones((n)), jnp.zeros((n))).reshape(n, 1), 
                   jnp.zeros((n, wyck_types-1))
                 ], axis = 1 )  # (n, wyck_types) mask = 1 for those locations to place pad atoms of type 0
-        w_logit = w_logit + jnp.where(w_mask, 1e10, 0.0)
+        w_logit = w_logit + jnp.where(w_mask, 0.0, -1e10)
         w_logit -= jax.scipy.special.logsumexp(w_logit, axis=1)[:, None] # normalization
 
         # (3) mask out unavaiable position after w_max for the given spacegroup
