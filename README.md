@@ -84,6 +84,9 @@ pip install -U "jax[cpu]"
 
 ### CUDA (GPU) installation
 
+> [!CAUTION]
+> CrystalFormer requires JAX versions between v0.4.25 and v0.4.35. Please avoid using versions newer than v0.4.35 to prevent compatibility issues. If you have already installed a newer version, please uninstall it first and then install one within the required range.
+
 If you intend to use CUDA (GPU) to speed up the training, it is important to install the appropriate version of `jax` and `jaxlib`. It is recommended to check the [jax docs](https://github.com/google/jax?tab=readme-ov-file#installation) for the installation guide. The basic installation command is given below:
 
 ```bash
