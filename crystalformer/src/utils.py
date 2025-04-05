@@ -64,7 +64,8 @@ def process_one(cif, atom_types, wyck_types, n_max, tol=0.01):
       A: atom types
       W: wyckoff letters
     """
-    crystal = Structure.from_str(cif, fmt='cif')
+    try: crystal = Structure.from_str(cif, fmt='cif')
+    except: crystal = Structure.from_dict(eval(cif))
     spga = SpacegroupAnalyzer(crystal, symprec=tol)
     crystal = spga.get_refined_structure()
     c = pyxtal()
@@ -167,7 +168,8 @@ def GLXYZAW_from_file(csv_file, atom_types, wyck_types, n_max, num_workers=1):
         return G, L, XYZ, A, W
 
     data = pd.read_csv(csv_file)
-    cif_strings = data['cif']
+    try: cif_strings = data['cif']
+    except: cif_strings = data['structure']
 
     p = multiprocessing.Pool(num_workers)
     partial_process_one = partial(process_one, atom_types=atom_types, wyck_types=wyck_types, n_max=n_max)
