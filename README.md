@@ -182,6 +182,9 @@ More details about the post-processing can be seen in the [scripts](./scripts/RE
 
 ## Reinforcement Fine-tuning
 
+> [!IMPORTANT]
+> Before running the reinforcement fine-tuning, please make sure you have installed the corresponding machine learning force field model or property prediction model. The `mlff_model` and `mlff_path` arguments in the command line should be set according to the model you are using. Now we support the[`orb`](https://github.com/orbital-materials/orb-models) and [`MACE`](https://github.com/ACEsuit/mace) models for the $E_{hull}$ reward, and the [`matgl`](https://github.com/materialsvirtuallab/matgl) model for the dielectric FoM reward.
+
 ### $E_{hull}$ Reward
 
 ```bash
