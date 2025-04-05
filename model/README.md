@@ -35,7 +35,9 @@ Alex-20: contains ~1.3M general inorganic materials curated from the [Alexandria
 
 ## Alex-20 RL
 
-The reinforcement learning fine-tuning checkpoint is available on [Google Drive](https://drive.google.com/file/d/1LlrpWj1GWUBZb-Ix_D3DfXxPd6EVsY6e/view?usp=sharing) and [Hugging Face Model Hub](https://huggingface.co/zdcao/CrystalFormer/blob/main/alex20/RL-ehull/epoch_000195.pkl). The reward is chosen to be the negative energy above the hull, which is calculated by the [Orb model](https://github.com/orbital-materials/orb-models) based on the Alexandria convex hull. 
+- $E_{hull}$ reward: The checkpoint is available on [Google Drive](https://drive.google.com/file/d/1LlrpWj1GWUBZb-Ix_D3DfXxPd6EVsY6e/view?usp=sharing) and [Hugging Face Model Hub](https://huggingface.co/zdcao/CrystalFormer/blob/main/alex20/RL-ehull/epoch_000195.pkl). The reward is chosen to be the negative energy above the hull, which is calculated by the [Orb model](https://github.com/orbital-materials/orb-models) based on the Alexandria convex hull. 
+
+- Dielectric FoM Reward: The checkpoint is available on [Google Drive](https://drive.google.com/file/d/1Jsa5uHa_Eu3cULqBDZxyia7CBgqe7Hg4/view?usp=sharing) and [Hugging Face Model Hub](https://huggingface.co/zdcao/CrystalFormer/blob/main/alex20/RL-dielectric/epoch_000100.pkl). The reward is chosen to be figures of dielectric figure of merit (FoM), which is the product of the total dielectric constant and the band gap. We use the pretrained [MEGNet](https://github.com/materialsvirtuallab/matgl/tree/main/pretrained_models/MEGNet-MP-2019.4.1-BandGap-mfi) to predict the band gap. The checkpoint of the total dielectric constant prediction model can be found in the [Google Drive](https://drive.google.com/drive/folders/1hQJD5R0dMJVC3nA1YkSHkCG9s-IAVNnA?usp=sharing). You can load the model using [matgl](https://github.com/materialsvirtuallab/matgl/tree/main) package. 
 
 
 ## MP-20
