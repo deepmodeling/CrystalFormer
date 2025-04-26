@@ -23,6 +23,7 @@ crystal space, which is crucial for data and compute efficient generative modeli
   - [CPU installation](#cpu-installation)
   - [CUDA (GPU) installation](#cuda-gpu-installation)
   - [install required packages](#install-required-packages)
+  - [command line tools](#command-line-tools)
 - [Available Weights](#available-weights)
 - [How to run](#how-to-run)
   - [train](#train)
@@ -85,9 +86,6 @@ pip install -U "jax[cpu]"
 
 ### CUDA (GPU) installation
 
-> [!CAUTION]
-> CrystalFormer requires JAX versions between v0.4.25 and v0.4.35. Please avoid using versions newer than v0.4.35 to prevent compatibility issues. If you have already installed a newer version, please uninstall it first and then install one within the required range.
-
 If you intend to use CUDA (GPU) to speed up the training, it is important to install the appropriate version of `jax` and `jaxlib`. It is recommended to check the [jax docs](https://github.com/google/jax?tab=readme-ov-file#installation) for the installation guide. The basic installation command is given below:
 
 ```bash
@@ -95,13 +93,20 @@ pip install --upgrade pip
 
 # NVIDIA CUDA 12 installation
 # Note: wheels only available on linux.
-pip install --upgrade "jax[cuda12]"
+pip install -U "jax[cuda12]"
 ```
 
 ### install required packages
 
 ```bash
 pip install -r requirements.txt
+```
+
+### command line tools
+To use the command line tools, you need to install the `crystalformer` package. You can use the following command to install the package:
+
+```bash
+pip install .
 ```
 
 ## Available Weights
@@ -153,6 +158,9 @@ python ./scripts/awl2struct.py --output_path YOUR_PATH --label SPACE_GROUP  --nu
 - `output_path`: the path to read the generated `L, W, A, X` and save the `cif` files
 - `label`: the label to save the `cif` files, which is the space group number `g`
 - `num_io_process`: the number of processes
+
+> [!IMPORTANT]
+> The following evaluation script requires the [`SMACT`](https://github.com/WMD-group/SMACT), [`matminer`](https://github.com/hackingmaterials/matminer), and [`matbench-genmetrics`](https://github.com/sparks-baird/matbench-genmetrics) packages. We recommend installing them in a separate environment to avoid conflicts with other packages.
 
 Calculate the structure and composition validity of the generated structures:
 

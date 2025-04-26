@@ -174,7 +174,7 @@ if __name__ == "__main__":
     
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, choices=["orb", "matgl", "mace"], default="orb", help="choose the MLFF model")
+    parser.add_argument("--model", type=str, choices=["orb", "matgl", "mace", "dp"], default="orb", help="choose the MLFF model")
     parser.add_argument("--device", type=str, default="cuda", help="choose the device to run the model on")
     parser.add_argument("--model_path", type=str, default="./data/orb-v2-20241011.ckpt", help="path to the model checkpoint")
     parser.add_argument("--restore_path", type=str, default="./experimental/", help="")

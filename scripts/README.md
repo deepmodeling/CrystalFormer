@@ -9,6 +9,7 @@
   - [Relaxation](#relaxation)
   - [Energy Above the Hull](#energy-above-the-hull)
   - [Embedding Visualization](#embedding-visualization)
+  - [Stable, Unique and Novel Structures](#stable-unique-and-novel-structures)
   - [Structure Visualization](#structure-visualization)
 
 ### Transform
@@ -48,15 +49,18 @@ Note that the training, test, and generated datasets should contain the structur
 
 
 ### Relaxation
-`matgl_relax.py` is a script to relax the generated structures using the `matgl` package. You can install the `matgl` following the instructions in the [matgl repository](https://github.com/materialsvirtuallab/matgl?tab=readme-ov-file).
+`mlff_relax.py` is a script to relax the generated structures using pretrained machine learning force field. Now we support the [`orb`](https://github.com/orbital-materials/orb-models), [`MACE`](https://github.com/ACEsuit/mace), [`matgl`](https://github.com/materialsvirtuallab/matgl) and [`deepmd-kit`](https://github.com/deepmodeling/deepmd-kit) models. Please install corresponding packages before running the script.
+
 ```bash
-python matgl_relax.py --restore_path RESTORE_PATH --filename FILENAME --relaxation --model_path MODEL_PATH
+python mlff_relax.py --restore_path RESTORE_PATH --filename FILENAME --relaxation --model orb --model_path MODEL_PATH
 ```
 - `restore_path`: the path to the generated structures
 - `filename`: the filename of the generated structures
 - `relaxation`: whether to relax the structures, if not specified, the script will only predict the energy of the structures without relaxation
-- `model_path`: the path to the `matgl` model checkpoint
-
+- `model`: the model to use for relaxation, which can be `orb`, `mace`, `matgl` or `dp`
+- `model_path`: the path to the machine learning force field checkpoint
+- `primitive`: whether to convert the structures to primitive cells, if not specified, the script will only relax the structures without converting to primitive cells. This can be used to reduce the number of atoms in the structures and speed up the relaxation process
+- `fixsymmetry`: whether to fix the space group symmetry of the structures in the relaxation process
 
 ### Energy Above the Hull
 `e_above_hull.py` is a script to calculate the energy above the hull of the generated structures based on the Materials Project database. To calculate the energy above the hull, the API key of the Materials Project is required, which can be obtained from the [Materials Project website](https://next-gen.materialsproject.org/). Furthermore, the `mp_api` package should be installed.
@@ -64,6 +68,18 @@ python matgl_relax.py --restore_path RESTORE_PATH --filename FILENAME --relaxati
 ```bash
 python e_above_hull.py --restore_path RESTORE_PATH --filename FILENAME --api_key API_KEY --label LABEL --relaxation
 ```
+- `restore_path`: the path to the structures 
+- `filename`: the filename of the structures
+- `api_key`: the API key of the Materials Project
+- `label`: the label to save the energy above the hull file
+- `relaxation`: whether to calculate the energy above the hull based on the relaxed structures
+
+`e_above_hull_alex.py` is a script to calculate the energy above the hull of the generated structures based on the Alexandria database. To calculate the energy above the hull, the Alexandria convex hull data is required, which can be obtained from the [Alexandria website](https://alexandria.icams.rub.de/).
+
+```bash
+python e_above_hull_alex.py --convex_path CONVEX_PATH --restore_path RESTORE_PATH --filename FILENAME --api_key API_KEY --label LABEL --relaxation
+```
+- `convex_path`: the path to the Alexandria convex hull data
 - `restore_path`: the path to the structures 
 - `filename`: the filename of the structures
 - `api_key`: the API key of the Materials Project
@@ -78,6 +94,17 @@ python plot_embeddings.py --restore_path RESTORE_PATH
 ```
 
 - `restore_path`: the path to the model checkpoint
+
+### Stable, Unique and Novel Structures
+`check_sun_materials.py` is a script to check the stable, unique and novel structures based on the given reference dataset.
+
+```bash
+python check_sun_materials.py --restore_path RESTORE_PATH --filename FILENAME --ref_path REF_PATH
+```
+
+- `restore_path`: the path to the generated structures
+- `filename`: the filename of the generated structures
+- `ref_path`: the path to the reference dataset
 
 ### Structure Visualization
 `structure_visualization.ipynb` is a notebook to visualize the generated structures.
