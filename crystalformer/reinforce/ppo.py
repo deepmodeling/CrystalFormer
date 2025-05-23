@@ -99,7 +99,7 @@ def train(key, optimizer, opt_state, spg_mask, loss_fn, logp_fn, batch_reward_fn
         logp_w, logp_xyz, logp_a, logp_l = logp_fn(pretrain_params, subkey2, *x, False)
         pretrain_logp = logp_w + logp_xyz + logp_a + logp_l
 
-        x = jax.tree_map(lambda _x: _x.reshape(shape_prefix + _x.shape[1:]), x)
+        x = jax.tree_util.tree_map(lambda _x: _x.reshape(shape_prefix + _x.shape[1:]), x)
         old_logp = old_logp.reshape(shape_prefix + old_logp.shape[1:])
         pretrain_logp = pretrain_logp.reshape(shape_prefix + pretrain_logp.shape[1:])
         advantages = advantages.reshape(shape_prefix + advantages.shape[1:])
@@ -121,13 +121,13 @@ def train(key, optimizer, opt_state, spg_mask, loss_fn, logp_fn, batch_reward_fn
 
             key, subkey = jax.random.split(key)
             loss, aux = loss_fn(params, subkey, *batch_data, False)
-            valid_loss, valid_aux = jax.tree_map(
+            valid_loss, valid_aux = jax.tree_util.tree_map(
                     lambda acc, i: acc + i,
                     (valid_loss, valid_aux), 
                     (loss, aux)
                     )
 
-        valid_loss, valid_aux = jax.tree_map(
+        valid_loss, valid_aux = jax.tree_util.tree_map(
                     lambda x: x/num_batches, 
                     (valid_loss, valid_aux)
                     ) 

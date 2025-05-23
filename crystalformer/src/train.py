@@ -71,18 +71,18 @@ def train(key, optimizer, opt_state, loss_fn, params, epoch_finished, epochs, ba
         for batch_idx in range(num_batches):
             start_idx = batch_idx * batchsize
             end_idx = min(start_idx + batchsize, num_samples)
-            data = jax.tree_map(lambda x: x[start_idx:end_idx], train_data)
-            data = jax.tree_map(lambda x: x.reshape(shape_prefix + x.shape[1:]), data)
+            data = jax.tree_util.tree_map(lambda x: x[start_idx:end_idx], train_data)
+            data = jax.tree_util.tree_map(lambda x: x.reshape(shape_prefix + x.shape[1:]), data)
             
             keys, subkeys = p_split(keys)
             params, opt_state, (loss, aux) = update(params, subkeys, opt_state, data)
-            train_loss, train_aux = jax.tree_map(   
+            train_loss, train_aux = jax.tree_util.tree_map(   
                         lambda acc, i: acc + jnp.mean(i),
                         (train_loss, train_aux),  
                         (loss, aux)
                         )
 
-        train_loss, train_aux = jax.tree_map(
+        train_loss, train_aux = jax.tree_util.tree_map(
                         lambda x: x/num_batches, 
                         (train_loss, train_aux)
                         ) 
@@ -99,19 +99,19 @@ def train(key, optimizer, opt_state, loss_fn, params, epoch_finished, epochs, ba
             for batch_idx in range(num_batches):
                 start_idx = batch_idx * batchsize
                 end_idx = min(start_idx + batchsize, num_samples)
-                data = jax.tree_map(lambda x: x[start_idx:end_idx], valid_data)
-                data = jax.tree_map(lambda x: x.reshape(shape_prefix + x.shape[1:]), data)
+                data = jax.tree_util.tree_map(lambda x: x[start_idx:end_idx], valid_data)
+                data = jax.tree_util.tree_map(lambda x: x.reshape(shape_prefix + x.shape[1:]), data)
 
                 keys, subkeys = p_split(keys)
                 loss, aux = jax.pmap(loss_fn, in_axes=(None, 0, 0, 0, 0, 0, 0),
                                      static_broadcasted_argnums=7)(params, subkeys, *data, False)
-                valid_loss, valid_aux = jax.tree_map(
+                valid_loss, valid_aux = jax.tree_util.tree_map(
                         lambda acc, i: acc + jnp.mean(i),
                         (valid_loss, valid_aux), 
                         (loss, aux)
                         )
 
-            valid_loss, valid_aux = jax.tree_map(
+            valid_loss, valid_aux = jax.tree_util.tree_map(
                         lambda x: x/num_batches, 
                         (valid_loss, valid_aux)
                         ) 

@@ -74,12 +74,12 @@ def train(key, optimizer, opt_state, dpo_loss_fn, logp_fn, params, epoch_finishe
         end_idx = min(start_idx + batchsize, num_samples)
         key, subkey1, subkey2 = jax.random.split(key, 3)
 
-        data = jax.tree_map(lambda x: x[start_idx:end_idx], chosen_data)
+        data = jax.tree_util.tree_map(lambda x: x[start_idx:end_idx], chosen_data)
         logp_w, logp_xyz, logp_a, logp_l = logp_fn(ref_params, subkey1, *data, False)
         logp = logp_w + logp_xyz + logp_a + logp_l
         ref_chosen_logps = jnp.append(ref_chosen_logps, logp, axis=0)
 
-        data = jax.tree_map(lambda x: x[start_idx:end_idx], rejected_data)
+        data = jax.tree_util.tree_map(lambda x: x[start_idx:end_idx], rejected_data)
         logp_w, logp_xyz, logp_a, logp_l = logp_fn(ref_params, subkey2, *data, False)
         logp = logp_w + logp_xyz + logp_a + logp_l
         ref_rejected_logps = jnp.append(ref_rejected_logps, logp, axis=0)
@@ -91,8 +91,8 @@ def train(key, optimizer, opt_state, dpo_loss_fn, logp_fn, params, epoch_finishe
     # Shuffle the data
     key, subkey = jax.random.split(key)
     idx = jax.random.permutation(subkey, jnp.arange(num_samples))
-    chosen_data = jax.tree_map(lambda x: x[idx], chosen_data)
-    rejected_data = jax.tree_map(lambda x: x[idx], rejected_data)
+    chosen_data = jax.tree_util.tree_map(lambda x: x[idx], chosen_data)
+    rejected_data = jax.tree_util.tree_map(lambda x: x[idx], rejected_data)
     ref_chosen_logps = ref_chosen_logps[idx]
     ref_rejected_logps = ref_rejected_logps[idx]
 
@@ -101,13 +101,13 @@ def train(key, optimizer, opt_state, dpo_loss_fn, logp_fn, params, epoch_finishe
     num_train_samples = num_samples - num_val_samples
     print("num_train_samples: %d, num_val_samples: %d" % (num_train_samples, num_val_samples))
 
-    train_chosen_data = jax.tree_map(lambda x: x[:num_train_samples], chosen_data)
-    train_rejected_data = jax.tree_map(lambda x: x[:num_train_samples], rejected_data)
+    train_chosen_data = jax.tree_util.tree_map(lambda x: x[:num_train_samples], chosen_data)
+    train_rejected_data = jax.tree_util.tree_map(lambda x: x[:num_train_samples], rejected_data)
     train_ref_chosen_logps = ref_chosen_logps[:num_train_samples]
     train_ref_rejected_logps = ref_rejected_logps[:num_train_samples]
 
-    val_chosen_data = jax.tree_map(lambda x: x[num_train_samples:], chosen_data)
-    val_rejected_data = jax.tree_map(lambda x: x[num_train_samples:], rejected_data)
+    val_chosen_data = jax.tree_util.tree_map(lambda x: x[num_train_samples:], chosen_data)
+    val_rejected_data = jax.tree_util.tree_map(lambda x: x[num_train_samples:], rejected_data)
     val_ref_chosen_logps = ref_chosen_logps[num_train_samples:]
     val_ref_rejected_logps = ref_rejected_logps[num_train_samples:]
 
@@ -131,8 +131,8 @@ def train(key, optimizer, opt_state, dpo_loss_fn, logp_fn, params, epoch_finishe
         for batch_idx in range(num_batches):
             start_idx = batch_idx * batchsize
             end_idx = min(start_idx + batchsize, num_samples)
-            x_w = jax.tree_map(lambda x: x[start_idx:end_idx],  train_chosen_data)
-            x_l = jax.tree_map(lambda x: x[start_idx:end_idx], train_rejected_data)
+            x_w = jax.tree_util.tree_map(lambda x: x[start_idx:end_idx],  train_chosen_data)
+            x_l = jax.tree_util.tree_map(lambda x: x[start_idx:end_idx], train_rejected_data)
             ref_chosen_logps_batch = train_ref_chosen_logps[start_idx:end_idx]
             ref_rejected_logps_batch = train_ref_rejected_logps[start_idx:end_idx]
 
@@ -160,8 +160,8 @@ def train(key, optimizer, opt_state, dpo_loss_fn, logp_fn, params, epoch_finishe
         for batch_idx in range(num_batches):
             start_idx = batch_idx * batchsize
             end_idx = min(start_idx + batchsize, num_val_samples)
-            x_w = jax.tree_map(lambda x: x[start_idx:end_idx],  val_chosen_data)
-            x_l = jax.tree_map(lambda x: x[start_idx:end_idx], val_rejected_data)
+            x_w = jax.tree_util.tree_map(lambda x: x[start_idx:end_idx],  val_chosen_data)
+            x_l = jax.tree_util.tree_map(lambda x: x[start_idx:end_idx], val_rejected_data)
             ref_chosen_logps_batch = val_ref_chosen_logps[start_idx:end_idx]
             ref_rejected_logps_batch = val_ref_rejected_logps[start_idx:end_idx]
 

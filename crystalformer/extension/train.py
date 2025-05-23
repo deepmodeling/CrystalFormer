@@ -23,7 +23,7 @@ def train(key, optimizer, opt_state, loss_fn, params, state, epoch_finished, epo
  
     for epoch in range(epoch_finished+1, epochs):
         key, subkey = jax.random.split(key)
-        train_data = jax.tree_map(lambda x: jax.random.permutation(subkey, x), train_data)
+        train_data = jax.tree_util.tree_map(lambda x: jax.random.permutation(subkey, x), train_data)
 
         train_G, train_L, train_X, train_A, train_W, train_labels = train_data
 
