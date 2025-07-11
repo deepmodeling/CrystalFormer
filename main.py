@@ -6,6 +6,8 @@ import os
 import multiprocessing
 import math
 import pandas as pd
+import numpy as np 
+np.set_printoptions(threshold=np.inf)
 
 from crystalformer.src.utils import GLXYZAW_from_file, letter_to_number
 from crystalformer.src.elements import element_dict, element_list
@@ -72,6 +74,7 @@ group.add_argument('--temperature', type=float, default=1.0, help='temperature u
 group.add_argument('--T1', type=float, default=None, help='temperature used for sampling the first atom type')
 group.add_argument('--num_io_process', type=int, default=40, help='number of process used in multiprocessing io')
 group.add_argument('--num_samples', type=int, default=1000, help='number of test samples')
+group.add_argument('--save_path', type=str, default=None, help='path to save the sampled structures')
 group.add_argument('--output_filename', type=str, default='output.csv', help='outfile to save sampled structures')
 
 group = parser.add_argument_group('MCMC parameters')
@@ -96,7 +99,7 @@ if args.optimizer != "none":
     valid_data = GLXYZAW_from_file(args.valid_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
 else:
     assert (args.spacegroup is not None) # for inference we need to specify space group
-    test_data = GLXYZAW_from_file(args.test_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
+    # test_data = GLXYZAW_from_file(args.test_path, args.atom_types, args.wyck_types, args.n_max, args.num_io_process)
     
     # jnp.set_printoptions(threshold=jnp.inf)  # print full array 
     constraints = jnp.arange(0, args.n_max, 1)
@@ -189,7 +192,7 @@ if args.optimizer != "none" or args.restore_path is None:
     os.makedirs(output_path, exist_ok=True)
     print("Create directory for output: %s" % output_path)
 else:
-    output_path = os.path.dirname(args.restore_path)
+    output_path = os.path.dirname(args.save_path)  if args.save_path else os.path.dirname(args.restore_path)
     print("Will output samples to: %s" % output_path)
 
 
@@ -227,29 +230,6 @@ if args.optimizer != "none":
     params, opt_state = train(key, optimizer, opt_state, loss_fn, params, epoch_finished, args.epochs, args.batchsize, train_data, valid_data, output_path, args.val_interval)
 
 else:
-    pass
-
-    print("\n========== Calculate the loss of test dataset ==========")
-    import numpy as np 
-    np.set_printoptions(threshold=np.inf)
-
-    test_G, test_L, test_XYZ, test_A, test_W = test_data
-    print (test_G.shape, test_L.shape, test_XYZ.shape, test_A.shape, test_W.shape)
-    test_loss = 0
-    num_samples = len(test_L)
-    num_batches = math.ceil(num_samples / args.batchsize)
-    for batch_idx in range(num_batches):
-        start_idx = batch_idx * args.batchsize
-        end_idx = min(start_idx + args.batchsize, num_samples)
-        G, L, XYZ, A, W = test_G[start_idx:end_idx], \
-                          test_L[start_idx:end_idx], \
-                          test_XYZ[start_idx:end_idx], \
-                          test_A[start_idx:end_idx], \
-                          test_W[start_idx:end_idx]
-        loss, _ = jax.jit(loss_fn, static_argnums=7)(params, key, G, L, XYZ, A, W, False)
-        test_loss += loss
-    test_loss = test_loss / num_batches
-    print ("evaluating loss on test data:" , test_loss)
 
     print("\n========== Start sampling ==========")
     jax.config.update("jax_enable_x64", True) # to get off compilation warning, and to prevent sample nan lattice 
