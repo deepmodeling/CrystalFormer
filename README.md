@@ -129,7 +129,7 @@ python ./main.py --folder ./data/ --train_path YOUR_PATH/mp_20/train.csv --valid
 ### sample
 
 ```bash
-python ./main.py --optimizer none --test_path YOUR_PATH/mp_20/test.csv --restore_path YOUR_MODEL_PATH --spacegroup 160 --num_samples 1000  --batchsize 1000 --temperature 1.0
+python ./main.py --optimizer none --restore_path YOUR_MODEL_PATH --spacegroup 160 --num_samples 1000  --batchsize 1000 --temperature 1.0
 ```
 
 - `optimizer`: the optimizer to use, `none` means no training, only sampling
