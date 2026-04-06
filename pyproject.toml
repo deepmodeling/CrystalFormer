@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=77.0.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,13 +9,13 @@ description = "CrystalFormer is a transformer-based autoregressive model specifi
 authors = [
     { name = "iopcompphys", email = "wanglei@iphy.ac.cn" }
 ]
-license = { file = "LICENSE" }
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 readme = "README.md"
 keywords = ["de novo generation", "crystal structure prediction", "transformer", "reinforcement learning"]
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: POSIX :: Linux"
 ]
 dependencies = [
