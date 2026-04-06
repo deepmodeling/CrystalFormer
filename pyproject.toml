@@ -16,7 +16,6 @@ keywords = ["de novo generation", "crystal structure prediction", "transformer",
 requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: POSIX :: Linux"
 ]
 dependencies = [
